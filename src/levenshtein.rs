@@ -1,3 +1,4 @@
+// Calculate the Levenshtein distance between two strings
 pub fn levenshtein_distance(first: &str, second: &str) -> usize {
     let long: &[u8];
     let short: &[u8];
@@ -15,38 +16,40 @@ pub fn levenshtein_distance(first: &str, second: &str) -> usize {
     let longd = long.len();
     let shortd = short.len();
 
-    // create all the vectors we'll need, all sized to the smaller string
-    // let mut store = Vec::with_capacity(short.len());
-    let mut last = vec![0; short.len()];
-    let mut cur = vec![0; short.len()];
+    // initialize the two vectors we need, sized according to short to reduce mem usage
+    let mut prev = vec![0; short.len() + 1];
+    let mut cur = vec![0; short.len() + 1];
 
-    // initialize all elements
+    // initialize all elements in the starter vector
     for i in 0..shortd {
-        cur[i] = i;
+        prev[i] = i;
     }
 
     // iterate once for every letter in the long word
-    for y in 1..longd+1 {
-        last.clone_from(&cur); //move cur to last
-        cur[0] = y; //set the character index
+    for y in 0..longd {
+        cur[0] = y+1; //set the character index
 
-        for x in 1..shortd+1 {
+        // iterate once for every letter in the short word (size of the arrays)
+        for x in 0..shortd {
+            let del_cost = prev[x+1] + 1;   // generate cost of deletion
+            let ins_cost = cur[x] + 1;      // generate cost of insertion
+            let sub_cost: usize;
 
-            let subcost: usize;
-            if long[y-1] == short[x-1] {
-                subcost = 0;
+            // generate cost of substitution
+            if long[y] == short[x] {
+                sub_cost = prev[x];
             } else {
-                subcost = 1;
+                sub_cost = prev[x] + 1;
             }
 
-            cur[x] = *[cur[x-1] + 1, last[x] + 1, last[x-1] + subcost].iter().min().unwrap();
+            // insert the minimum cost into the array
+            cur[x+1] = *[del_cost, ins_cost, sub_cost].iter().min().unwrap();
         }
+
+        // move the current vector to the prev location so that it can be looked at next iteration
+        std::mem::swap(&mut cur, &mut prev);
     }
 
-
-    println!("{:?}", last);    
-    println!("{:?}", cur);    
-
-    return cur[shortd - 1];
+    return prev[shortd];
     
 }
