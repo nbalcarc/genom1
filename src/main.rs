@@ -1,6 +1,8 @@
-mod levenshtein;
+mod algorithms;
 
 fn main() {
-    let result = levenshtein::levenshtein_distance("kit", "glimmen");
+    let result = algorithms::levenshtein("kit", "glimmen");
     println!("{}", result);
+    println!("{}", algorithms::levenshtein("kitten", "alderkitten"));
+    println!("{}", algorithms::levenshtein("alderkitten", "kitten"));
 }

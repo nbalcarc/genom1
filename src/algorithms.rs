@@ -1,5 +1,5 @@
 // Calculate the Levenshtein distance between two strings
-pub fn levenshtein_distance(first: &str, second: &str) -> usize {
+pub fn levenshtein(first: &str, second: &str) -> usize {
     let long: &[u8];
     let short: &[u8];
 
