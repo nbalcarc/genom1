@@ -3,10 +3,11 @@ NGrams Algorithm:
 Given a genome and another genome's ngrams
 1. Grab all ngrams and start iterating through our genome
 2. If we notice chars starting any ngram, start "completing" the ngram with a new head
-    If at any point the stream of chars deviates from the ngram, kill the current head
-    If we are halfway through the ngram when it seems to restart, create a new head to that same ngram
-    If ngram is completed, kill all heads of that ngram and don't create any more
+    If at any point the stream of chars deviates from a head, kill that current head
+    If we are already iterating through an ngram and a new instance of it should start, create a new head to that same ngram
+    If an ngram is completed, kill all heads of that ngram and don't create any more
 3. At the end of the file, count how many ngrams were found (no repeats of the same ngram allowed)
+Goal: gain rough comparison metric of two genomes without much computation nor memory usage
 
 
 Full Tree Generation Algorithm:
@@ -34,4 +35,5 @@ Given a new genome
     If distance from cur to CR is significantly less than CR to its CR, create a parallel branch and move cur and CR to that new branch
     If distance from cur to CR is significantly more than CR to its CR, create parallel branch and move cur to that new branch
     If distance from cur to CR is insignificant compared to CR to its CR, place cur in the same branch as the CR
+Goal: place a genome in an optimal position, and reorder the genome tree as needed
 
