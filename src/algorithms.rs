@@ -1,4 +1,6 @@
-// Calculate the Levenshtein distance between two strings
+use std::fs;
+
+/// Calculate the Levenshtein distance between two strings
 pub fn levenshtein(first: &str, second: &str) -> usize {
     let long: &[u8];
     let short: &[u8];
@@ -53,3 +55,10 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
     return prev[shortd];
     
 }
+
+
+pub fn file_testing() {
+    let x = fs::metadata("/home/terrior/Programming/genome-tree/src/test.txt").unwrap().len();
+    dbg!(x);
+}
+
