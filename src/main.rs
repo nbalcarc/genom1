@@ -6,5 +6,5 @@ fn main() {
     println!("{}", result);
     println!("{}", algorithms::levenshtein("kitten", "alderkitten"));
     println!("{}", algorithms::levenshtein("alderkitten", "kitten"));
-    algorithms::file_testing();
+    dbg!(algorithms::file_size("/home/terrior/Programming/genome-tree/src/test.txt"));
 }

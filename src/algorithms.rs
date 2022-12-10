@@ -1,5 +1,7 @@
 use std::fs;
 
+use crate::errors::PhyloError;
+
 /// Calculate the Levenshtein distance between two strings
 pub fn levenshtein(first: &str, second: &str) -> usize {
     let long: &[u8];
@@ -57,8 +59,7 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
 }
 
 
-pub fn file_testing() {
-    let x = fs::metadata("/home/terrior/Programming/genome-tree/src/test.txt").unwrap().len();
-    dbg!(x);
+/// Retrieves the size of a file in bytes
+pub fn file_size(dir: &str) -> Result<u64, PhyloError> {
+    Ok(fs::metadata(dir).map_err(|_| PhyloError::FileReadError(String::from(dir)))?.len())
 }
-
