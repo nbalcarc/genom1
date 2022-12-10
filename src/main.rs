@@ -1,5 +1,6 @@
 mod algorithms;
 mod errors;
+mod structs;
 
 fn main() {
     let result = algorithms::levenshtein("kit", "glimmen");
