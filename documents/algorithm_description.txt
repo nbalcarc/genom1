@@ -1,0 +1,37 @@
+
+NGrams Algorithm:
+Given a genome and another genome's ngrams
+1. Grab all ngrams and start iterating through our genome
+2. If we notice chars starting any ngram, start "completing" the ngram with a new head
+    If at any point the stream of chars deviates from the ngram, kill the current head
+    If we are halfway through the ngram when it seems to restart, create a new head to that same ngram
+    If ngram is completed, kill all heads of that ngram and don't create any more
+3. At the end of the file, count how many ngrams were found (no repeats of the same ngram allowed)
+
+
+Full Tree Generation Algorithm:
+Given a new genome
+1. Generate 20 ngrams of length 16 for it and store them in a file
+    These should not have newlines in them
+2. If this is the first genome, simply place it as a root
+3. If not first genome, record number of total genomes, look at the first split, consider the weight of each split
+    A split could have 20 genomes on one side, 30 on the other for example, a 20:30 or 2:3 split
+4. In our example, we're looking for 8 genomes to compare with, so send 2/5 of 8 to the left and 3/5 of 8 to the right
+    We now have 5 checks on the "left" and 3 checks on the "right"
+    If at any point the two splits don't contain enough items to check, simply check all the genomes remaining in this branch
+    For each check, keep repeating this splitting process until we can no longer split
+5. Once we reach a flat ground (no splits possible), randomly choose a genome on this layer for each check
+    If there are 5 genomes and we have 3 checks to run, randomly pick 3 genomes to check
+    Due to step 4, it should be impossible to have more checks than genomes once we reach ground
+6. Run the ngrams algorithm on all checked genomes (if distance not stored) and compare to the new genome, find the closest relative of these
+    All distances should be hashed and recorded, in case we run into this genome again later during this algorithm
+7. The closest relative (CR) is our new pivot. Check the recorded number of total genomes from step 3
+    If total number of genomes (TG) is 8 or less, then the pivot becomes the new genome's true CR, initiate step 8
+    If the total number is more than 8, move one layer up from the CR
+        If this split contains at least TG / 8 genomes, then record TG / 8 and start at step 3 from this split
+        If this split contains less than TG / 8 genomes, then move one split up and repeat the check
+8. Now that we've found our genome's CR, calculate the Levenshtein distance between our genome and the CR
+    If distance from cur to CR is significantly less than CR to its CR, create a parallel branch and move cur and CR to that new branch
+    If distance from cur to CR is significantly more than CR to its CR, create parallel branch and move cur to that new branch
+    If distance from cur to CR is insignificant compared to CR to its CR, place cur in the same branch as the CR
+
