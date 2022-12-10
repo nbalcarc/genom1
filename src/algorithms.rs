@@ -1,4 +1,5 @@
-use std::fs;
+use std::{fs::{self, File}, io::Read, os::unix::prelude::FileExt};
+use rand::Rng;
 
 use crate::errors::PhyloError;
 
@@ -63,3 +64,34 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
 pub fn file_size(dir: &str) -> Result<u64, PhyloError> {
     Ok(fs::metadata(dir).map_err(|_| PhyloError::FileReadError(String::from(dir)))?.len())
 }
+
+
+/// Generates k-mers (n-grams) for the given file
+pub fn generate_kmer(file_dir: &str, k: u32, num: u32) -> Result<Vec<String>, PhyloError> {
+    let size = file_size(file_dir)? as usize;
+    let mut ret = Vec::with_capacity(size);     // create a vector with the right size
+    let mut loc: Vec<usize> = Vec::with_capacity(num as usize);     // decide all locations to generate kmers at
+    let mut rng = rand::thread_rng();
+
+    // Ensure the file is sized satisfactorily
+    if size < k as usize {
+        return Err(PhyloError::FileTooSmall(String::from(file_dir)));
+    }
+
+    // Find all locations we'll take ngrams at
+    for _ in 0..num {
+        loc.push(rng.gen_range(0..(size - k as usize - 1)));
+    }
+    loc.sort();
+
+    // Generate kmers
+    let file = File::open(file_dir).map_err(|_| PhyloError::FileOpenError(String::from(file_dir)))?; // Open the genome file
+    let mut buffer = Vec::with_capacity(k as usize);
+    for i in 0..size {
+        file.read_exact_at(&mut buffer, loc[i] as u64).map_err(|_| PhyloError::FileReadError(String::from(file_dir)))?; // Read from the specified location
+        ret.push(String::from_utf8(buffer.clone()).map_err(|_| PhyloError::FileReadError(String::from(file_dir)))?);    // Push to return vector
+    }
+
+    Ok(ret)
+}
+
