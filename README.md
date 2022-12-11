@@ -25,8 +25,8 @@ To generate the tree, simply run:
 
     cargo run --release
     
-A phylogenetic tree should have been exported as an xml to the root directory
-in a file called 'phylo_tree.xml'. Thank you for using this software.
+A phylogenetic tree should have been exported as a file to the root directory
+in a file called 'phylo_tree.txt'. Thank you for using this software.
 
 ## Things to Note
 This software was developed and tested solely on a Linux machine. Python and
