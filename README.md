@@ -1,5 +1,5 @@
 # Genome Tree
-Given a list of genomes, will generate a phylogenic tree.
+Given a list of genomes, will generate a phylogenetic tree.
 
 ## License
 This software is dual-licensed under GPL Version 2 and/or GPL Version 3. You may
@@ -28,7 +28,7 @@ To generate the tree, simply run:
 A phylogenetic tree should have been exported as an xml to the root directory
 in a file called 'phylo_tree.xml'. Thank you for using this software.
 
-## Things to note
+## Things to Note
 This software was developed and tested solely on a Linux machine. Python and
 Rust are both cross-platform, and as such this should work on other systems
 as well, however I can not guarantee this simply because I have not tested it.
