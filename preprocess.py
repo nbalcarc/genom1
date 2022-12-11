@@ -4,6 +4,17 @@ import tempfile
 from zipfile import ZipFile
 
 
+def preprocess(file_dir: str) -> str:
+    '''Removes all irrelevant information from the given genome file'''
+    
+    with open(file_dir, 'r') as file:
+        with open(file_dir + ".copy", 'w') as file1:
+            for line in file.readlines():
+                if not line.startswith('>'): #all irrelevant lines start with >
+                    file1.write(line)
+    return file_dir + ".copy"
+
+
 def main():
     '''Entry point for program'''
     
@@ -40,9 +51,8 @@ def main():
             if tfile[tfile.rfind('.'):] != ".fna":
                 continue
             
-            genome_file = genome_location + tfile
+            genome_file = preprocess(genome_location + tfile) #preprocess the file before copying
             shutil.copyfile(genome_file, genomes_dir + "/" + file_clipped + "/" + tfile) #copy the file into the output
-    
     
 
 if __name__ == "__main__":
