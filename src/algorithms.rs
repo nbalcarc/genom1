@@ -67,7 +67,7 @@ pub fn file_size(dir: &str) -> Result<u64, PhyloError> {
 
 
 /// Generates k-mers (n-grams) for the given file
-pub fn generate_kmer(file_dir: &str, k: u32, num: u32) -> Result<Vec<String>, PhyloError> {
+pub fn generate_kmers(file_dir: &str, k: u32, num: u32) -> Result<Vec<String>, PhyloError> {
     let size = file_size(file_dir)? as usize;
     let mut ret = Vec::with_capacity(size);     // create a vector with the right size
     let mut loc: Vec<usize> = Vec::with_capacity(num as usize);     // decide all locations to generate kmers at
