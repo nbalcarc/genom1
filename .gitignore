@@ -2,4 +2,3 @@
 Cargo.lock
 **/nohup.out
 genomes/
-genomes_raw/
