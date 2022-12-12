@@ -1,7 +1,7 @@
-use std::{fs::{self, File}, io::Read, os::unix::prelude::FileExt, collections::HashMap};
+use std::{fs::{self, File}, io::{Read, BufReader, BufRead}, os::unix::prelude::FileExt, collections::HashMap};
 use rand::Rng;
 
-use crate::errors::PhyloError;
+use crate::{errors::PhyloError, structs::Genome};
 
 /// Calculate the Levenshtein distance between two strings
 pub fn levenshtein(first: &str, second: &str) -> usize {
@@ -166,4 +166,116 @@ pub fn generate_kmers(file_dir: &str, k: u32, num: u32) -> Result<Vec<String>, P
 
     Ok(ret)
 }
+
+
+
+/// Check how many kmers apply to the given genome
+pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
+    let mut ret = 0;
+    let kmers = host.kmers.clone();
+   
+    // open file
+    let mut buffer: Vec<u8> = vec![0; 1024];
+    let file = File::open(&guest.dir).unwrap();
+    let mut reader = BufReader::new(file);
+
+    // read all data
+    let mut buff = Vec::new();
+    reader.read_to_end(&mut buff);
+    let all = String::from_utf8(buff).unwrap();
+
+    // for every kmer
+    for i in 0..kmers.len() {
+        if all.contains(&kmers[i]) {
+            ret += 1;
+        }
+    }
+
+    ret
+}
+
+
+/// Check how many kmers apply to the given genome
+pub fn kmer_similarity_old(host: &Genome, guest: &Genome) -> u32 {
+    let mut ret = 0;
+    let kmers = host.kmers.clone();
+
+    let mut kmer_heads: Vec<(u8, Vec<u8>)> = Vec::new(); //contain all the heads
+    let mut completed: Vec<bool> = vec![false; 20];
+
+    let mut buffer: Vec<u8> = vec![0; 1024];
+    let file_result = File::open(&guest.dir);
+    let file: File;
+    match file_result {
+        Ok(f) => {
+            file = f;
+        },
+        Err(_) => {
+            return 0;
+        }
+    }
+
+    let file_size = file_size(&guest.dir).unwrap();
+    let mut offset = 1024;
+    let mut limit: i32 = 1024;
+
+    // while we still have more file to check
+    while offset < file_size - 1 {
+        file.read_exact_at(&mut buffer, offset);
+        
+        // if we've reached the end of the file, limit how much of the buffer we read
+        if offset + 1024 > file_size - 2 {
+            limit = ((file_size - 1) % 1024).try_into().unwrap();
+        }
+
+        // iterate through all chars, while respecting the limit
+        for i in 0..TryInto::<i32>::try_into(buffer.len()).unwrap() - (1024 - limit) {
+            let c = buffer[i as usize];
+            //let ch = c as char;
+
+            let mut new_heads: Vec<(u8, Vec<u8>)> = Vec::new();
+            
+            // first handle the existing heads
+            for i in 0..kmer_heads.len() {
+                println!("{}", limit);
+                let head = &mut kmer_heads[i];
+
+                if completed[head.0 as usize] { //if this kmer has been verified already
+                    continue;
+                }
+
+                if head.1[head.1.len()-1] == c { //if this matches the next char in the head
+                    head.1.remove(head.1.len()-1);
+                    if head.1.len() == 0 {
+                        completed[i] = true;
+                        ret += 1;
+                        continue;
+                    } else {
+                        new_heads.push(head.clone());
+                    }
+                }
+            }
+
+            // now create new heads
+            for i in 0..kmers.len() {
+                let cur = &kmers[i];
+                if c as char == cur.chars().nth(0).unwrap() { //if the current char matches the first in the kmer
+                    let mut kmer_vec: Vec<u8> = cur.clone().into_bytes();
+                    kmer_vec.reverse();
+                    new_heads.push((i.try_into().unwrap(), kmer_vec));
+                }
+            }
+
+            kmer_heads = new_heads;
+        }
+
+        offset += 1024;
+
+    }
+
+    ret
+}
+
+
+
 

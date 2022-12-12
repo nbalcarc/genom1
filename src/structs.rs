@@ -94,8 +94,12 @@ impl PhyloTree {
 
         // if we have an empty tree, just push it
         if let TreeVertex::Floor(s) = &mut self.root.vertex {
-            s.push(genome);
-            return Ok(());
+            if s.len() == 0 {
+                println!("exiting early, root");
+                s.push(genome);
+                self.root.count = 1;
+                return Ok(());
+            }
         }
 
         /* First we want to find 8 genomes to compare to, if available */
@@ -110,6 +114,8 @@ impl PhyloTree {
 
             // Repeat once per tuple in the current heads
             for i in 0..heads.len() {
+                println!("running on head: {} out of {}", i, heads.len());
+
                 let mut tup = heads[i].clone(); //get the current tuple of information
                 let mut new_heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //create new vector to replace current one
 
@@ -175,7 +181,7 @@ impl PhyloTree {
                     },
                     TreeVertex::Floor(v) => { //if we have a floor of genomes
                         // assign each head its own genome
-                        println!("made it here, heads = {}", tup.1);
+                        println!("made it to a floor, heads = {}", tup.1);
                         heads.remove(i);
                         
                         break;

@@ -1,31 +1,68 @@
 use crate::structs::{PhyloTree, Genome};
-use std::{path::Path, env, fs};
+use std::{path::Path, env, fs::{self, File}, os::unix::prelude::FileExt};
 
 mod algorithms;
 mod errors;
 mod structs;
 
 
+/// A function dedicated to testing functionality
 fn testing() {
     let mut ve = vec![(0, 1), (2, 3), (4, 5)];
     for t in &mut ve {
         t.0 = 5;
         t.1 = 6;
     }
-    dbg!(ve);
+    //dbg!(ve);
 
     let items = vec![1,  2, 3,  4,   5,   6, 7,  8];
     let probs = vec![40, 3, 18, 100, 200, 1, 35, 16];
-    dbg!(algorithms::random_weighted(items, probs, 10, true));
+    //dbg!(algorithms::random_weighted(items, probs, 10, true));
 
     let mut x = Box::new(3);
     let y = &mut x;
     let z = x;
 
+    let mut buff = vec![1; 32];
+    let file = File::open("/home/terrior/Programming/genome-tree/src/test1.txt").unwrap();
+    file.read_exact_at(&mut buff, 0);
+    //dbg!(buff);
+
+    let kmers = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 16, 20).unwrap();
+    let kmers1 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 16, 20).unwrap();
+    let kmers2 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna", 16, 20).unwrap();
+
+    let mut genome = Genome {
+        path: Vec::new(),
+        dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
+        kmers: kmers,
+        closest_relative: Vec::new(),
+        closest_distance: 0,
+    };
+    
+    let mut genome1 = Genome {
+        path: Vec::new(),
+        dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
+        kmers: kmers1,
+        closest_relative: Vec::new(),
+        closest_distance: 0,
+    };
+
+    let mut genome2 = Genome {
+        path: Vec::new(),
+        dir: String::from("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna"),
+        kmers: kmers2,
+        closest_relative: Vec::new(),
+        closest_distance: 0,
+    };
+
+    dbg!(algorithms::kmer_similarity(&genome, &genome));
+
 }
 
 
-fn main() {
+/// Handle all the tree generation
+fn tree_generation() {
     //let result = algorithms::levenshtein("kit", "glimmen");
     //println!("{}", result);
     //println!("{}", algorithms::levenshtein("kitten", "alderkitten"));
@@ -35,9 +72,8 @@ fn main() {
     //algorithms::generate_kmers(file_dir, k, num);
     //let dir = env::current_dir().unwrap().as_path().display().to_string();
 
-    testing();
 
-
+    
     let mut tree = structs::PhyloTree::new();
     
     let dir = env::current_dir().unwrap().to_str().unwrap().to_owned(); //get the current working directory
@@ -80,4 +116,11 @@ fn main() {
 
 
     let tree = PhyloTree::new();
+}
+
+
+/// Entry point
+fn main() {
+    testing();
+    //tree_generation();
 }
