@@ -28,9 +28,9 @@ fn testing() {
     file.read_exact_at(&mut buff, 0);
     //dbg!(buff);
 
-    let kmers = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 16, 20).unwrap();
-    let kmers1 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 16, 20).unwrap();
-    let kmers2 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna", 16, 20).unwrap();
+    let kmers = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 12, 64).unwrap();
+    let kmers1 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 12, 64).unwrap();
+    let kmers2 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna", 12, 64).unwrap();
 
     let mut genome = Genome {
         path: Vec::new(),
@@ -57,6 +57,8 @@ fn testing() {
     };
 
     dbg!(algorithms::kmer_similarity(&genome, &genome));
+    dbg!(algorithms::kmer_similarity(&genome, &genome1));
+    dbg!(algorithms::kmer_similarity(&genome, &genome2));
 
 }
 
@@ -121,6 +123,6 @@ fn tree_generation() {
 
 /// Entry point
 fn main() {
-    testing();
-    //tree_generation();
+    //testing();
+    tree_generation();
 }
