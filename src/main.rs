@@ -59,7 +59,7 @@ fn main() {
             if !&file_path.ends_with(".fna") {
                 continue;
             }
-            //println!("{}", file_name);
+            //println!("{}", file_path);
             let kmers = algorithms::generate_kmers(&file_path, 16, 20).unwrap();
             let mut genome = Genome {
                 path: Vec::new(),

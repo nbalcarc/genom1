@@ -53,7 +53,13 @@ def main():
         
         
         # iterate through all files in the extracted location (the file ends with .fna but the name could be anything)
-        os.makedirs(genomes_dir + "/" + organism_name)
+        if not os.path.isdir(genomes_dir + "/" + organism_name):
+            os.makedirs(genomes_dir + "/" + organism_name)
+        else:
+            i = 1
+            while os.path.isdir(genomes_dir + "/" + organism_name + "_" + str(i)):
+                i += 1
+            os.makedirs(genomes_dir + "/" + organism_name + "_" + str(i))
         for tfile in os.listdir(genome_location):
             
             # if this isn't the file we're looking for, skip
