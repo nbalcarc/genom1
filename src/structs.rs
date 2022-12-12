@@ -1,4 +1,4 @@
-use std::thread;
+use std::{thread, fs::{File, self}, sync::{Arc, Mutex}};
 
 use rand::Rng;
 
@@ -107,7 +107,7 @@ impl PhyloTree {
         /* First we want to find 8 genomes to compare to, if available */
 
         let mut heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //keep track of all heads (ref, heads, path)
-        let mut genomes: Vec<&Genome> = Vec::with_capacity(8);
+        let mut genomes: Vec<(usize, &Genome)> = Vec::with_capacity(8);
         heads.push((&mut self.root, 8, vec![0])); //push the root as the first head
 
         // Find all the genomes to run the kmer check on
@@ -178,11 +178,13 @@ impl PhyloTree {
 
                         // choose randomly which genomes to look at, one iteration per head
                         let mut rand = rand::thread_rng();
-                        for _ in 0..tup.1 {
+                        for i in 0..tup.1 {
                             let chosen = rand.gen_range(0..options.len());
-                            genomes.push(&v[chosen]);
+                            genomes.push((options[chosen], &v[chosen]));
                             options.remove(chosen);
                         }
+
+                        dbg!("here");
                         
                         break;
                     }
@@ -192,6 +194,7 @@ impl PhyloTree {
 
         //dbg!(&genomes);
         //println!("{}", genomes.len());
+        dbg!("here, down");
 
         // if we've successfully reached the final 8 genomes
         if genomes.len() < 9 {
@@ -199,6 +202,44 @@ impl PhyloTree {
             // -do real comparisons on all genomes
             // -find the closest relative
             // -resort the tree if need be, and insert the genome
+            let distances: Arc<Mutex<Vec<(Vec<u8>, usize)>>> = Arc::new(Mutex::new(Vec::new()));
+
+            let genome_str = fs::read_to_string(&genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&genome.dir)))?;
+            let mut threads: Vec<thread::JoinHandle<()>> = Vec::new();
+
+            // for each genome
+            for cur_tup in genomes {
+                let cur_genome = cur_tup.1;
+
+                // copy variables that we'll need in the closure
+                let dist_arc = distances.clone();
+                let genome_str0 = genome_str.clone();
+                let cur_genome0 = cur_genome.clone();
+                
+                let mut new_path = cur_genome0.path;
+                new_path.push(cur_tup.0.try_into().unwrap());
+
+                // launch a new thread for levenshtein distance
+                let cur_thread = thread::spawn( move || {
+                    let genome_str1 = fs::read_to_string(&cur_genome0.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome0.dir))).unwrap();
+                    dbg!("starting levenshtein");
+                    dist_arc.lock().unwrap().push((new_path, algorithms::levenshtein(&genome_str0, &genome_str1)));
+                    
+                });
+                dbg!("idk here?");
+                threads.push(cur_thread);
+                //let genome_str1 = fs::read_to_string(&cur_genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome.dir)))?;
+                //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
+            }
+
+            dbg!("now we waiting");
+
+            // rejoin all threads back together
+            for thr in threads {
+                thr.join();
+            }
+            dbg!(distances);
+
         } else {
             // launch the filter protocol
             // -find the closest relative
@@ -207,6 +248,7 @@ impl PhyloTree {
             // -"recurse"
         }
 
+        dbg!("here, down down");
 
         Ok(())
 

@@ -98,7 +98,7 @@ fn tree_generation() {
                 continue;
             }
             //println!("{}", file_path);
-            let kmers = algorithms::generate_kmers(&file_path, 16, 20).unwrap();
+            let kmers = algorithms::generate_kmers(&file_path, 12, 64).unwrap();
             let mut genome = Genome {
                 path: Vec::new(),
                 dir: file_path,

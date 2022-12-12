@@ -32,6 +32,7 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
 
     // iterate once for every letter in the long word
     for y in 0..longd {
+        println!("{} of {}!", y, longd);
         cur[0] = y+1; //set the character index
 
         // iterate once for every letter in the short word (size of the arrays)
