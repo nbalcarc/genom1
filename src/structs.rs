@@ -1,5 +1,7 @@
 use std::thread;
 
+use crate::{errors::PhyloError, algorithms};
+
 /// Establishes the structure of our phylogenetic tree
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -83,14 +85,88 @@ impl PhyloTree {
 
     /// Create a new phylogenetic tree
     pub fn new() -> Self {
-        PhyloTree { root: TreeNode::new_with_floor(0, 0), next_index: 0 }
+        PhyloTree { root: TreeNode::new_with_floor(0, 0), next_index: 1 }
     }
 
     /// Push a new genome onto the tree
-    pub fn push(&mut self, genome: Genome) {
+    pub fn push(&mut self, genome: Genome) -> Result<(), PhyloError>{
         //let refs: Vec<&mut TreeNode> = Vec::new(); //store all references to each layer here
-        let mut paths: Vec<(u8, u32)> = Vec::new();
-        paths.push((self.root.id, 8)); //push the root as the first head
+
+        /* First we want to find 8 genomes to compare to, if available */
+
+        let mut heads: Vec<(&mut TreeNode, u32, Vec<u8>)> = Vec::new(); //keep track of all heads (ref, heads, path)
+        let mut genomes: Vec<&Genome>;
+        heads.push((&mut self.root, 8, vec![0])); //push the root as the first head
+
+        // Find all the genomes to run the kmer check on
+        loop {
+
+            // Repeat once per tuple in the current heads
+            for tup in &mut heads {
+                let mut new_heads: Vec<(&mut TreeNode, u32, Vec<u8>)> = Vec::new(); //create new vector to replace current one
+
+                // if the TreeNode has fewer genomes than we have heads
+                if &tup.0.count < &tup.1 {
+                    tup.1 = tup.0.count; //reduce the number of heads
+                }
+
+                match &mut tup.0.vertex {
+                    TreeVertex::Split(nodes) => { //if we have more splits
+                        // for each node, allocate a certain number of heads to it
+                        let count = nodes.len().clone(); //number of nodes on this floor
+                        let mut weights: Vec<u32> = Vec::new(); //keep track of how many genomes each node has
+                        let mut indices: Vec<u32> = Vec::new(); //indices
+
+                        // prepare the weights, iterate for each node in the floor
+                        for i in 0..count {
+                            weights.push(nodes[i].count);
+                            indices.push(i.try_into().map_err(|_| PhyloError::ConversionError)?);
+                        }
+
+                        // get all the branches our heads will go to
+                        let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
+                       
+                        // iterate through all the branches that will receive heads
+                        for branch_index in branches.keys() {
+
+                            let mut this_path = tup.2.clone(); //the whole path up to this current node
+                            //let x = nodes[*branch_index as usize].id;
+
+                            // update the local path
+                            let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
+                            this_path.push(this_id); //push the next id to the path
+
+                            let mut node_ref = nodes[*branch_index as usize]; //retrieve a reference to the next node
+                            new_heads.push((&mut node_ref, branches[branch_index], this_path));
+                            nodes[*branch_index as usize] = node_ref;
+
+                            // push the new head to the list of heads
+                            //new_heads.push((&nodes[*branch_index as usize], branches[branch_index], this_path))
+
+                            //this_path.push(nodes[*branch_index as usize].id.clone());
+                            //new_heads.push((&mut nodes[*branch_index as usize], branches[branch_index], this_path));
+                        }
+
+
+                        //for branch_index in branches {
+                        //    new_heads.push(&mut nodes[branch_index], )
+                        //}
+
+                        
+
+                        todo!();
+                    },
+                    TreeVertex::Floor(v) => { //if we have a floor of genomes
+                        // assign each head its own genome
+                        
+                        break;
+                    }
+                }
+
+
+
+            }
+        }
 
     }
 

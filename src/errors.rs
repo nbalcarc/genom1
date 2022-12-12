@@ -7,6 +7,7 @@ pub enum PhyloError {
     FileTooSmall(String),
     FileOpenError(String),
     KTooBig(u32),
+    ConversionError,
 }
 impl Error for PhyloError {}
 impl Display for PhyloError {
@@ -23,6 +24,9 @@ impl Display for PhyloError {
             },
             Self::KTooBig(s) => {
                 write!(f, "{}", s)
+            },
+            Self::ConversionError => {
+                write!(f, "Conversion error!")
             }
         }
     }

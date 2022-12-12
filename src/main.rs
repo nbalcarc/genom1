@@ -5,19 +5,40 @@ mod algorithms;
 mod errors;
 mod structs;
 
+
+fn testing() {
+    let mut ve = vec![(0, 1), (2, 3), (4, 5)];
+    for t in &mut ve {
+        t.0 = 5;
+        t.1 = 6;
+    }
+    dbg!(ve);
+
+    let items = vec![1,  2, 3,  4,   5,   6, 7,  8];
+    let probs = vec![40, 3, 18, 100, 200, 1, 35, 16];
+    dbg!(algorithms::random_weighted(items, probs, 10, true));
+
+    let mut x = Box::new(3);
+    let y = &mut x;
+    let z = x;
+
+}
+
+
 fn main() {
-    let result = algorithms::levenshtein("kit", "glimmen");
-    println!("{}", result);
-    println!("{}", algorithms::levenshtein("kitten", "alderkitten"));
-    println!("{}", algorithms::levenshtein("alderkitten", "kitten"));
-    dbg!(algorithms::file_size("/home/terrior/Programming/genome-tree/src/test.txt"));
+    //let result = algorithms::levenshtein("kit", "glimmen");
+    //println!("{}", result);
+    //println!("{}", algorithms::levenshtein("kitten", "alderkitten"));
+    //println!("{}", algorithms::levenshtein("alderkitten", "kitten"));
+    //dbg!(algorithms::file_size("/home/terrior/Programming/genome-tree/src/test.txt"));
 
     //algorithms::generate_kmers(file_dir, k, num);
     //let dir = env::current_dir().unwrap().as_path().display().to_string();
 
+    testing();
+
+
     let mut tree = structs::PhyloTree::new();
-
-
     
     let dir = env::current_dir().unwrap().to_str().unwrap().to_owned(); //get the current working directory
     let paths = fs::read_dir(dir + "/genomes").unwrap(); //get all paths in the genomes directory
@@ -48,7 +69,9 @@ fn main() {
                 closest_distance: 0,
             };
             //dbg!(genome);
-            tree.push(genome);
+
+            // BRING THIS BACK LATER
+            //tree.push(genome);
 
         }
     }
