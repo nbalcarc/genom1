@@ -12,7 +12,7 @@ Goal: gain rough comparison metric of two genomes without much computation nor m
 
 Full Tree Generation Algorithm:
 Given a new genome
-1. Generate 20 ngrams of length 16 for it and store them in a file
+1. Generate 64 ngrams of length 12 for it and store them in a file
     These should not have newlines in them
 2. If this is the first genome, simply place it as a root
 3. If not first genome, record number of total genomes, look at the first split, consider the weight of each split
@@ -26,14 +26,27 @@ Given a new genome
     Due to step 4, it should be impossible to have more checks than genomes once we reach ground
 6. Run the ngrams algorithm on all checked genomes (if distance not stored) and compare to the new genome, find the closest relative of these
     All distances should be hashed and recorded, in case we run into this genome again later during this algorithm
-7. The closest relative (CR) is our new pivot. Check the recorded number of total genomes from step 3
+7. The local closest relative (CR) is our new pivot. Check the recorded number of total genomes from step 3
     If total number of genomes (TG) is 8 or less, then the pivot becomes the new genome's true CR, initiate step 8
     If the total number is more than 8, move one layer up from the CR
         If this split contains at least TG / 8 genomes, then record TG / 8 and start at step 3 from this split
-        If this split contains less than TG / 8 genomes, then move one split up and repeat the check
+        If this split contains less than TG / 8 genomes, then move one split up and repeat the check, unless we've already checked that node, then check its child
 8. Now that we've found our genome's CR, calculate the Levenshtein distance between our genome and the CR
     If distance from cur to CR is significantly less than CR to its CR, create a parallel branch and move cur and CR to that new branch
     If distance from cur to CR is significantly more than CR to its CR, create parallel branch and move cur to that new branch
     If distance from cur to CR is insignificant compared to CR to its CR, place cur in the same branch as the CR
 Goal: place a genome in an optimal position, and reorder the genome tree as needed
+
+
+            NODE
+            VERTEX  -> FLOOR, SPLIT
+                         VECTOR   NODE
+
+
+
+
+
+
+
+
 

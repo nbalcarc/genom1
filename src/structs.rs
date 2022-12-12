@@ -2,14 +2,15 @@ use std::{thread, fs::{File, self}, sync::{Arc, Mutex}};
 
 use rand::Rng;
 
-use crate::{errors::PhyloError, algorithms};
+use crate::{errors::PhyloError, algorithms::{self, retrieve_genome}};
+
 
 /// Establishes the structure of our phylogenetic tree
 #[derive(Debug, Clone)]
 pub struct TreeNode {
-    id: u8,             // unique identifier used for finding genome paths
-    vertex: TreeVertex, // decides the structure of this node
-    count: u32,         // the total count of genomes under this node 
+    pub id: u8,             // unique identifier used for finding genome paths
+    pub vertex: TreeVertex, // decides the structure of this node
+    pub count: u32,         // the total count of genomes under this node 
 }
 impl TreeNode {
 
@@ -29,6 +30,99 @@ impl TreeNode {
         let cur_floor = std::mem::replace(&mut self.vertex, TreeVertex::new_split()); //retrieve the current floor
         floor_node.vertex = cur_floor; //place the floor into the node
         self.vertex.push_node(floor_node); //push the newly created node containing our old floor into our split
+    }
+
+    pub fn find<'s>(&'s self, number_heads:u32) -> Vec<&'s Genome> {
+        /* First we want to find 8 genomes to compare to, if available */
+
+        let mut heads: Vec<(&TreeNode, u32)> = Vec::new(); //keep track of all heads (ref, heads)
+        let mut genomes: Vec<&Genome> = Vec::with_capacity(8); //result
+        heads.push((self, number_heads)); //push the root as the first head
+
+        let mut thread_rng = rand::thread_rng();
+
+        // Find all the genomes to run the kmer check on
+        while heads.len() > 0 {
+            println!("running with heads: {}", heads[0].1);
+
+            // Repeat once per tuple in the current heads
+            for i in 0..heads.len() {
+                println!("running on head: {} out of {}", i, heads.len());
+
+                let mut tup = heads[i]; //get the current tuple of information
+                let mut new_heads: Vec<(&TreeNode, u32)> = Vec::new(); //create new vector to replace current one
+
+                // if the TreeNode has fewer genomes than we have heads
+                if &tup.0.count < &tup.1 {
+                    tup.1 = tup.0.count; //reduce the number of heads
+                }
+
+                // if more splits, then update the list of heads
+                // if reach floor, then add to list of genomes and clip heads
+                match &tup.0.vertex {
+                    TreeVertex::Split(nodes) => { //if we have more splits
+
+                        println!("made it into split, heads: {}", tup.1);
+
+                        // for each node, allocate a certain number of heads to it
+                        let count = nodes.len().clone(); //number of nodes on this floor
+                        let mut weights: Vec<u32> = Vec::new(); //keep track of how many genomes each node has
+                        let mut indices: Vec<u32> = Vec::new(); //indices
+
+                        // prepare the weights, iterate for each node in the floor
+                        // this sets the weight of each node as the number of genomes it holds
+                        for i in 0u32..(count as u32) {
+                            weights.push(nodes[i as usize].count);
+                            indices.push(i);
+                        }
+
+                        // get all the branches our heads will go to
+                        let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
+                        //let mut node_refs = nodes.clone();
+                       
+                        // iterate through all the branches that will receive heads
+                        for branch_index in branches.keys() {
+
+                            //let x = nodes[*branch_index as usize].id;
+
+                            // update the local path
+                            let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
+
+                            // push the new head to the list of heads
+                            let node_ref: &TreeNode = &nodes[*branch_index as usize]; //retrieve a reference to the next node
+                            new_heads.push((node_ref, branches[branch_index]));
+                        }
+
+                        heads = new_heads;
+                    },
+                    TreeVertex::Floor(v) => { //if we have a floor of genomes
+                        // assign each head its own genome
+                        println!("made it to a floor, heads = {}", tup.1);
+                        heads.remove(i);
+
+                        use rand::seq::SliceRandom;
+                        genomes.extend(v.choose_multiple(&mut thread_rng, tup.1 as _));
+
+                        // establish vector with an element per genome
+                        // let options = Vec::from_iter(0..v.len());
+
+                        // choose randomly which genomes to look at, one iteration per head
+                        //let mut rand = rand::thread_rng();
+                        //for i in 0..tup.1 {
+                        //    let chosen = rand.gen_range(0..options.len());
+                        //    //println!("option chosen: {}", options[chosen]);
+                        //    genomes.push(&v[chosen]);
+                        //    options.remove(chosen);
+                        //}
+
+                        dbg!("here");
+                        
+                        break;
+                    }
+                }
+            }
+        }
+        genomes        
     }
 }
 
@@ -73,7 +167,7 @@ pub struct Genome {
     pub path: Vec<u8>,              // the path to reach this genome
     pub dir: String,                // the directory of the genome
     pub kmers: Vec<String>,         // the list of kmers for this genome
-    pub closest_relative: Vec<i32>, // the path of the closest relative
+    pub closest_relative: Vec<u8>, // the path of the closest relative
     pub closest_distance: u32,      // Levenshtein distance between this genome and its closest relative
 }
 
@@ -105,159 +199,76 @@ impl PhyloTree {
             }
         }
 
-        /* First we want to find 8 genomes to compare to, if available */
+        // Method on Tree goes here
+        let genomes = self.root.find(8);
 
-        let mut heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //keep track of all heads (ref, heads, path)
-        let mut genomes: Vec<(usize, &Genome)> = Vec::with_capacity(8);
-        heads.push((&mut self.root, 8, vec![0])); //push the root as the first head
-
-        // Find all the genomes to run the kmer check on
-        while heads.len() > 0 {
-            println!("running with heads: {}", heads[0].1);
-
-            // Repeat once per tuple in the current heads
-            for i in 0..heads.len() {
-                println!("running on head: {} out of {}", i, heads.len());
-
-                let mut tup = heads[i].clone(); //get the current tuple of information
-                let mut new_heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //create new vector to replace current one
-
-                // if the TreeNode has fewer genomes than we have heads
-                if &tup.0.count < &tup.1 {
-                    tup.1 = tup.0.count; //reduce the number of heads
-                }
-
-                // if more splits, then update the list of heads
-                // if reach floor, then add to list of genomes and clip heads
-                match &tup.0.vertex {
-                    TreeVertex::Split(nodes) => { //if we have more splits
-
-                        println!("made it into split, heads: {}", tup.1);
-
-                        // for each node, allocate a certain number of heads to it
-                        let count = nodes.len().clone(); //number of nodes on this floor
-                        let mut weights: Vec<u32> = Vec::new(); //keep track of how many genomes each node has
-                        let mut indices: Vec<u32> = Vec::new(); //indices
-
-                        // prepare the weights, iterate for each node in the floor
-                        for i in 0..count {
-                            weights.push(nodes[i].count);
-                            indices.push(i.try_into().map_err(|_| PhyloError::ConversionError)?);
-                        }
-
-                        // get all the branches our heads will go to
-                        let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
-                        //let mut node_refs = nodes.clone();
-                       
-                        // iterate through all the branches that will receive heads
-                        for branch_index in branches.keys() {
-
-                            let mut this_path = tup.2.clone(); //the whole path up to this current node
-                            //let x = nodes[*branch_index as usize].id;
-
-                            // update the local path
-                            let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
-                            this_path.push(this_id); //push the next id to the path
-
-                            // push the new head to the list of heads
-                            let node_ref: &TreeNode = &nodes[*branch_index as usize]; //retrieve a reference to the next node
-                            new_heads.push((node_ref, branches[branch_index], this_path));
-                        }
-
-                        heads = new_heads;
-                    },
-                    TreeVertex::Floor(v) => { //if we have a floor of genomes
-                        // assign each head its own genome
-                        println!("made it to a floor, heads = {}", tup.1);
-                        heads.remove(i);
-
-                        // establish vector with an element per genome
-                        let mut options: Vec<usize> = Vec::new();
-                        for i in 0..v.len() {
-                            options.push(i);
-                        }
-
-                        // choose randomly which genomes to look at, one iteration per head
-                        let mut rand = rand::thread_rng();
-                        for i in 0..tup.1 {
-                            let chosen = rand.gen_range(0..options.len());
-                            println!("option chosen: {}", options[chosen]);
-                            genomes.push((options[chosen], &v[chosen]));
-                            options.remove(chosen);
-                        }
-
-                        dbg!("here");
-                        
-                        break;
-                    }
-                }
-            }
-        }
-
+        //Err(PhyloError::ConversionError)
         //dbg!(&genomes);
         //println!("{}", genomes.len());
         dbg!("here, down");
 
+        // launch the filter protocol
+        // -find the closest relative
+        // -start from the bottom, looking for the first node to have at most 1/8 of all nodes
+        // -if that node is the node we just searched, then just choose the next node down
+        // -"recurse"
+
         // if we've successfully reached the final 8 genomes
-        if genomes.len() < 9 {
-            // launch the insertion protocol
-            // -do real comparisons on all genomes
-            // -find the closest relative
-            // -resort the tree if need be, and insert the genome
-            let distances: Arc<Mutex<Vec<(Vec<u8>, usize)>>> = Arc::new(Mutex::new(Vec::new()));
+        // launch the insertion protocol
+        // -do real comparisons on all genomes
+        // -find the closest relative
+        // -resort the tree if need be, and insert the genome
+        let distances: Arc<Mutex<Vec<(usize, Vec<u8>)>>> = Arc::new(Mutex::new(Vec::new())); // (distance, &Genome)
 
-            let genome_str = fs::read_to_string(&genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&genome.dir)))?;
-            let mut threads: Vec<thread::JoinHandle<()>> = Vec::new();
+        let genome_str = fs::read_to_string(&genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&genome.dir)))?;
+        let mut threads: Vec<thread::JoinHandle<()>> = Vec::new();
 
-            // for each genome
-            for cur_tup in genomes {
-                let cur_genome = cur_tup.1;
+        // for each genome, generate a thread that runs the levenshtein algorithm
+        for cur_genome in genomes {
+            // copy variables that we'll need in the closure
+            let dist_arc = distances.clone();
+            let genome_str0 = genome_str.clone();
+            //let cur_genome0 = cur_genome.clone();
+            let genome_path = cur_genome.path.clone();
+            let genome_dir = cur_genome.dir.clone();
+            
+            // let mut new_path = cur_genome0.path;
+            // println!("old path: {:?}", new_path);
+            // new_path.push(cur_tup.0.try_into().unwrap());
+            // println!("new path: {:?}", new_path);
 
-                // copy variables that we'll need in the closure
-                let dist_arc = distances.clone();
-                let genome_str0 = genome_str.clone();
-                let cur_genome0 = cur_genome.clone();
-                
-                let mut new_path = cur_genome0.path;
-                println!("old path: {:?}", new_path);
-                new_path.push(cur_tup.0.try_into().unwrap());
-                println!("new path: {:?}", new_path);
-
-                // launch a new thread for levenshtein distance
-                let cur_thread = thread::spawn( move || {
-                    let genome_str1 = fs::read_to_string(&cur_genome0.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome0.dir))).unwrap();
-                    dbg!("starting levenshtein");
-                    dist_arc.lock().unwrap().push((new_path, algorithms::levenshtein(&genome_str0, &genome_str1)));
-                    
-                });
-                dbg!("idk here?");
-                threads.push(cur_thread);
-                //let genome_str1 = fs::read_to_string(&cur_genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome.dir)))?;
-                //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
-            }
-
-            dbg!("now we waiting");
-
-            // rejoin all threads back together
-            let x = threads.len();
-            for thr in threads {
-                println!("size of threads: {}", x);
-                thr.join();
-            }
-            //dbg!(distances);
-
-            let distances = distances.lock().unwrap().clone();
-            let dummy = (vec![0 as u8], std::usize::MAX);
-
-            let best = distances.iter().fold(&dummy, |accum, elem| if elem.1 < accum.1 {elem} else {accum});
-
-        } else {
-            // launch the filter protocol
-            // -find the closest relative
-            // -start from the bottom, looking for the first node to have at most 1/8 of all nodes
-            // -if that node is the node we just searched, then just choose the next node down
-            // -"recurse"
+            // launch a new thread for levenshtein distance
+            let cur_thread = thread::spawn( move || {
+                let genome_str1 = fs::read_to_string(&genome_dir).map_err(|_| PhyloError::FileOpenError(String::from(genome_dir))).unwrap();
+                dbg!("starting levenshtein");
+                let distance = algorithms::levenshtein(&genome_str0, &genome_str1);
+                dist_arc.lock().unwrap().push((distance,genome_path));
+            });
+            dbg!("idk here?");
+            threads.push(cur_thread);
+            //let genome_str1 = fs::read_to_string(&cur_genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome.dir)))?;
+            //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
         }
+
+        dbg!("now we waiting");
+
+        // rejoin all threads back together
+        let x = threads.len();
+        for thr in threads {
+            println!("size of threads: {}", x);
+            thr.join();
+        }
+        //dbg!(distances);
+
+        let distances = distances.lock().unwrap().clone();
+        //let dummy = (std::usize::MAX, Genome); //base case for the fold
+        if let Some((best_dist,best_genome_path)) = distances.iter().min_by_key(|a|a.0) { //(path, distance), the best genome
+            // distances.iter().max_by_key(|(_,d)|d)=> Option<_>
+            let best_genome_mut = retrieve_genome(&mut self.root, &best_genome_path).map_err(|_| PhyloError::SearchGenomeError)?;
+            
+            //let best_genome_parent = retrieve_genome(&mut self.root, best_genome.path).map_err(|_| PhyloError::SearchGenomeError)?;
+        }
+       
 
         dbg!("here, down down");
 
