@@ -71,7 +71,7 @@ fn main() {
             //dbg!(genome);
 
             // BRING THIS BACK LATER
-            //tree.push(genome);
+            tree.push(genome);
 
         }
     }

@@ -40,11 +40,20 @@ def main():
         
         # unzip the folder
         with ZipFile(genomes_raw_dir + "/" + file, 'r') as zipfile:
-            os.makedirs(genomes_dir + "/" + file_clipped)
             zipfile.extractall(zipdir + "/" + file) #ensure no two unzipped folders overlap
+        genome_location = zipdir + f"/{file}/ncbi_dataset/data/{file_clipped}/"
+        
+        # retrieve the organism name
+        organism_name = "default"
+        with open(zipdir + f"/{file}/ncbi_dataset/data/assembly_data_report.jsonl") as file: #open the file containing the organism name
+            for line in file.readlines():
+                if "organismName" in line:
+                    substr = line[line.find("organismName") + 15:]
+                    organism_name = substr[:substr.find('"')].replace(" ", "_").replace("/", "_") #extract and perform input validation
+        
         
         # iterate through all files in the extracted location (the file ends with .fna but the name could be anything)
-        genome_location = zipdir + f"/{file}/ncbi_dataset/data/{file_clipped}/"
+        os.makedirs(genomes_dir + "/" + organism_name)
         for tfile in os.listdir(genome_location):
             
             # if this isn't the file we're looking for, skip
@@ -52,7 +61,7 @@ def main():
                 continue
             
             genome_file = preprocess(genome_location + tfile) #preprocess the file before copying
-            shutil.copyfile(genome_file, genomes_dir + "/" + file_clipped + "/" + tfile) #copy the file into the output
+            shutil.copyfile(genome_file, genomes_dir + "/" + organism_name + "/" + tfile) #copy the file into the output
     
 
 if __name__ == "__main__":

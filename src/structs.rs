@@ -92,6 +92,119 @@ impl PhyloTree {
     pub fn push(&mut self, genome: Genome) -> Result<(), PhyloError>{
         //let refs: Vec<&mut TreeNode> = Vec::new(); //store all references to each layer here
 
+        // if we have an empty tree, just push it
+        if let TreeVertex::Floor(s) = &mut self.root.vertex {
+            s.push(genome);
+            return Ok(());
+        }
+
+        /* First we want to find 8 genomes to compare to, if available */
+
+        let mut heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //keep track of all heads (ref, heads, path)
+        let mut genomes: Vec<&Genome>;
+        heads.push((&mut self.root, 8, vec![0])); //push the root as the first head
+
+        // Find all the genomes to run the kmer check on
+        while heads.len() > 0 {
+            println!("running with heads: {}", heads[0].1);
+
+            // Repeat once per tuple in the current heads
+            for i in 0..heads.len() {
+                let mut tup = heads[i].clone(); //get the current tuple of information
+                let mut new_heads: Vec<(&TreeNode, u32, Vec<u8>)> = Vec::new(); //create new vector to replace current one
+
+                // if the TreeNode has fewer genomes than we have heads
+                if &tup.0.count < &tup.1 {
+                    tup.1 = tup.0.count; //reduce the number of heads
+                }
+
+                // if more splits, then update the list of heads
+                // if reach floor, then add to list of genomes and clip heads
+                match &tup.0.vertex {
+                    TreeVertex::Split(nodes) => { //if we have more splits
+
+                        println!("made it into split, heads: {}", tup.1);
+
+                        // for each node, allocate a certain number of heads to it
+                        let count = nodes.len().clone(); //number of nodes on this floor
+                        let mut weights: Vec<u32> = Vec::new(); //keep track of how many genomes each node has
+                        let mut indices: Vec<u32> = Vec::new(); //indices
+
+                        // prepare the weights, iterate for each node in the floor
+                        for i in 0..count {
+                            weights.push(nodes[i].count);
+                            indices.push(i.try_into().map_err(|_| PhyloError::ConversionError)?);
+                        }
+
+                        // get all the branches our heads will go to
+                        let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
+                        //let mut node_refs = nodes.clone();
+                       
+                        // iterate through all the branches that will receive heads
+                        for branch_index in branches.keys() {
+
+                            let mut this_path = tup.2.clone(); //the whole path up to this current node
+                            //let x = nodes[*branch_index as usize].id;
+
+                            // update the local path
+                            let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
+                            this_path.push(this_id); //push the next id to the path
+
+                            // push the new head to the list of heads
+                            let node_ref: &TreeNode = &nodes[*branch_index as usize]; //retrieve a reference to the next node
+                            new_heads.push((node_ref, branches[branch_index], this_path));
+
+                            //node_refs[*branch_index as usize] = node_ref;
+
+                            // push the new head to the list of heads
+                            //new_heads.push((&nodes[*branch_index as usize], branches[branch_index], this_path))
+
+                            //this_path.push(nodes[*branch_index as usize].id.clone());
+                            //new_heads.push((&mut nodes[*branch_index as usize], branches[branch_index], this_path));
+                        }
+
+
+                        //for branch_index in branches {
+                        //    new_heads.push(&mut nodes[branch_index], )
+                        //}
+
+                        heads = new_heads;
+
+                        
+
+                    },
+                    TreeVertex::Floor(v) => { //if we have a floor of genomes
+                        // assign each head its own genome
+                        println!("made it here, heads = {}", tup.1);
+                        heads.remove(i);
+                        
+                        break;
+                    }
+                }
+
+
+
+            }
+        }
+        Ok(())
+
+    }
+
+}
+
+
+
+
+
+
+
+/*
+
+
+    /// Push a new genome onto the tree
+    pub fn push(&mut self, genome: Genome) -> Result<(), PhyloError>{
+        //let refs: Vec<&mut TreeNode> = Vec::new(); //store all references to each layer here
+
         /* First we want to find 8 genomes to compare to, if available */
 
         let mut heads: Vec<(&mut TreeNode, u32, Vec<u8>)> = Vec::new(); //keep track of all heads (ref, heads, path)
@@ -166,10 +279,8 @@ impl PhyloTree {
 
 
             }
-        }
 
-    }
 
-}
+*/
 
 
