@@ -91,11 +91,12 @@ impl PhyloTree {
     }
 
     /// Push a new genome onto the tree
-    pub fn push(&mut self, genome: Genome) -> Result<(), PhyloError>{
+    pub fn push(&mut self, mut genome: Genome) -> Result<(), PhyloError>{
         //let refs: Vec<&mut TreeNode> = Vec::new(); //store all references to each layer here
 
         // if we have an empty tree, just push it
         if let TreeVertex::Floor(s) = &mut self.root.vertex {
+            genome.path = vec![0];
             if s.len() == 0 {
                 println!("exiting early, root");
                 s.push(genome);
@@ -180,6 +181,7 @@ impl PhyloTree {
                         let mut rand = rand::thread_rng();
                         for i in 0..tup.1 {
                             let chosen = rand.gen_range(0..options.len());
+                            println!("option chosen: {}", options[chosen]);
                             genomes.push((options[chosen], &v[chosen]));
                             options.remove(chosen);
                         }
@@ -217,7 +219,9 @@ impl PhyloTree {
                 let cur_genome0 = cur_genome.clone();
                 
                 let mut new_path = cur_genome0.path;
+                println!("old path: {:?}", new_path);
                 new_path.push(cur_tup.0.try_into().unwrap());
+                println!("new path: {:?}", new_path);
 
                 // launch a new thread for levenshtein distance
                 let cur_thread = thread::spawn( move || {
@@ -235,10 +239,17 @@ impl PhyloTree {
             dbg!("now we waiting");
 
             // rejoin all threads back together
+            let x = threads.len();
             for thr in threads {
+                println!("size of threads: {}", x);
                 thr.join();
             }
-            dbg!(distances);
+            //dbg!(distances);
+
+            let distances = distances.lock().unwrap().clone();
+            let dummy = (vec![0 as u8], std::usize::MAX);
+
+            let best = distances.iter().fold(&dummy, |accum, elem| if elem.1 < accum.1 {elem} else {accum});
 
         } else {
             // launch the filter protocol

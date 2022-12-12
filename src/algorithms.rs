@@ -30,26 +30,37 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
         prev[i] = i;
     }
 
+    // declare variables outside loop so we don't have to reallocate them
+    let mut del_cost;
+    let mut ins_cost;
+    let mut sub_cost;
+
     // iterate once for every letter in the long word
     for y in 0..longd {
-        println!("{} of {}!", y, longd);
+        //println!("{} of {}!", y, longd);
         cur[0] = y+1; //set the character index
 
         // iterate once for every letter in the short word (size of the arrays)
         for x in 0..shortd {
-            let del_cost = prev[x+1] + 1;   // generate cost of deletion
-            let ins_cost = cur[x] + 1;      // generate cost of insertion
-            let sub_cost: usize;
+            del_cost = prev[x+1] + 1;   // generate cost of deletion
+            ins_cost = cur[x] + 1;      // generate cost of insertion
 
             // generate cost of substitution
-            if long[y] == short[x] {
+            if long[x+1] == short[x] {
                 sub_cost = prev[x];
             } else {
                 sub_cost = prev[x] + 1;
             }
 
             // insert the minimum cost into the array
-            cur[x+1] = *[del_cost, ins_cost, sub_cost].iter().min().unwrap();
+            //cur[x+1] = *[del_cost, ins_cost, sub_cost].iter().min().unwrap();
+            cur[x+1] = if del_cost < ins_cost && del_cost < sub_cost {
+                del_cost
+            } else if ins_cost < del_cost && ins_cost < sub_cost {
+                ins_cost
+            } else {
+                sub_cost
+            }
         }
 
         // move the current vector to the prev location so that it can be looked at next iteration

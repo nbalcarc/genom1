@@ -60,6 +60,14 @@ fn testing() {
     dbg!(algorithms::kmer_similarity(&genome, &genome1));
     dbg!(algorithms::kmer_similarity(&genome, &genome2));
 
+
+    //for i in 0..30000 {
+    //    println!("{} of {}", i, 30000);
+    //    for j in 0..30000 {
+    //
+    //    }
+    //}
+
 }
 
 
