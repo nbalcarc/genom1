@@ -78,17 +78,19 @@ pub fn generate_kmers(file_dir: &str, k: u32, num: u32) -> Result<Vec<String>, P
         return Err(PhyloError::FileTooSmall(String::from(file_dir)));
     }
 
-    // Find all locations we'll take ngrams at
+    // Find all locations we'll take kmers at
     for _ in 0..num {
         loc.push(rng.gen_range(0..(size - k as usize - 1)));
     }
     loc.sort();
 
-    // Generate kmers
+    // Prepare the file and buffer
     let file = File::open(file_dir).map_err(|_| PhyloError::FileOpenError(String::from(file_dir)))?; // Open the genome file
-    let mut buffer = Vec::with_capacity(k as usize);
-    for i in 0..size {
-        file.read_exact_at(&mut buffer, loc[i] as u64).map_err(|_| PhyloError::FileReadError(String::from(file_dir)))?; // Read from the specified location
+    let mut buffer: Vec<u8> = vec![0; k.try_into().map_err(|_| PhyloError::KTooBig(k))?];
+
+    // For each kmer
+    for i in 0..num {
+        file.read_exact_at(&mut buffer, loc[i as usize] as u64).map_err(|_| PhyloError::FileReadError(String::from(file_dir)))?; // Read from the specified location
         ret.push(String::from_utf8(buffer.clone()).map_err(|_| PhyloError::FileReadError(String::from(file_dir)))?);    // Push to return vector
     }
 

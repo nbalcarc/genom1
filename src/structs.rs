@@ -2,6 +2,7 @@
 pub struct TreeNode {
     id: u8,             // unique identifier used for finding genome paths
     vertex: TreeVertex, // decides the structure of this node
+    count: u32,         // the total count of genomes under this node 
 }
 
 
@@ -25,12 +26,13 @@ impl TreeVertex {
 
 
 /// Represents a single genome
+#[derive(Debug)]
 pub struct Genome {
-    path: Vec<u8>,              // the path to reach this genome
-    dir: String,                // the directory of the genome
-    kmers: Vec<String>,         // the list of kmers for this genome
-    closest_relative: Vec<i32>, // the path of the closest relative
-    closest_distance: u32,      // Levenshtein distance between this genome and its closest relative
+    pub path: Vec<u8>,              // the path to reach this genome
+    pub dir: String,                // the directory of the genome
+    pub kmers: Vec<String>,         // the list of kmers for this genome
+    pub closest_relative: Vec<i32>, // the path of the closest relative
+    pub closest_distance: u32,      // Levenshtein distance between this genome and its closest relative
 }
 
 
@@ -47,7 +49,8 @@ impl PhyloTree {
     }
 
     /// Push a new genome onto the tree
-    pub fn push(genome: Genome) {
+    pub fn push(&mut self, genome: Genome) {
+        let refs: Vec<&mut TreeNode> = Vec::new();
 
     }
 

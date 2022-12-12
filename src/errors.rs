@@ -6,6 +6,7 @@ pub enum PhyloError {
     FileReadError(String),
     FileTooSmall(String),
     FileOpenError(String),
+    KTooBig(u32),
 }
 impl Error for PhyloError {}
 impl Display for PhyloError {
@@ -20,6 +21,9 @@ impl Display for PhyloError {
             Self::FileOpenError(s) => {
                 write!(f, "{}", s)
             },
+            Self::KTooBig(s) => {
+                write!(f, "{}", s)
+            }
         }
     }
 }
