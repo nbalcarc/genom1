@@ -80,12 +80,9 @@ impl TreeNode {
 
                         // get all the branches our heads will go to
                         let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
-                        //let mut node_refs = nodes.clone();
                        
                         // iterate through all the branches that will receive heads
                         for branch_index in branches.keys() {
-
-                            //let x = nodes[*branch_index as usize].id;
 
                             // update the local path
                             let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
@@ -104,20 +101,6 @@ impl TreeNode {
 
                         use rand::seq::SliceRandom;
                         genomes.extend(v.choose_multiple(&mut thread_rng, tup.1 as _));
-
-                        // establish vector with an element per genome
-                        // let options = Vec::from_iter(0..v.len());
-
-                        // choose randomly which genomes to look at, one iteration per head
-                        //let mut rand = rand::thread_rng();
-                        //for i in 0..tup.1 {
-                        //    let chosen = rand.gen_range(0..options.len());
-                        //    //println!("option chosen: {}", options[chosen]);
-                        //    genomes.push(&v[chosen]);
-                        //    options.remove(chosen);
-                        //}
-
-                        //dbg!("here");
                         
                         break;
                     }
@@ -258,18 +241,6 @@ impl PhyloTree {
 
         }
 
-        
-        //Err(PhyloError::ConversionError)
-        //dbg!(&genomes);
-        //println!("{}", genomes.len());
-
-        // launch the filter protocol
-        // -find the closest relative
-        // -start from the bottom, looking for the first node to have at most 1/8 of all nodes
-        // -if that node is the node we just searched, then just choose the next node down
-        // -"recurse"
-
-
         // if we've successfully reached the final 8 genomes
         // launch the insertion protocol
         // -do real comparisons on all genomes
@@ -288,11 +259,6 @@ impl PhyloTree {
             //let cur_genome0 = cur_genome.clone();
             let genome_path = cur_genome.path.clone();
             let genome_dir = cur_genome.dir.clone();
-            
-            // let mut new_path = cur_genome0.path;
-            // println!("old path: {:?}", new_path);
-            // new_path.push(cur_tup.0.try_into().unwrap());
-            // println!("new path: {:?}", new_path);
 
             // launch a new thread for levenshtein distance
             let cur_thread = thread::spawn( move || {
@@ -303,11 +269,7 @@ impl PhyloTree {
             });
             //dbg!("idk here?");
             threads.push(cur_thread);
-            //let genome_str1 = fs::read_to_string(&cur_genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome.dir)))?;
-            //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
         }
-
-        //dbg!("now we waiting");
 
         // rejoin all threads back together
         let x = threads.len();
@@ -327,13 +289,8 @@ impl PhyloTree {
             genome.closest_distance = *best_dist;
             genome.closest_relative = best_genome_mut.path.clone();
             
-            //let best_genome_parent = retrieve_genome(&mut self.root, best_genome.path).map_err(|_| PhyloError::SearchGenomeError)?;
-            // start inserting the genome, make sure to reorganize the tree, all node counts, and maybe all genome paths
-
             // first retrieve the parent node of the CR
             let relative_distance = genome.closest_distance as f64 / best_genome_mut.closest_distance as f64;
-
-            // if the new genome is the closest relative's new closest relative
 
             // if we will split, then the new genome will end up on the new split
             if relative_distance < 1.0 {
@@ -373,7 +330,6 @@ impl PhyloTree {
                             node.path = new_path;
                         }
 
-
                     } else {
                         closest_relative = Genome {
                             path: Vec::new(),
@@ -394,12 +350,6 @@ impl PhyloTree {
                         new_closest_path.push(1);
                         genome.closest_relative = new_closest_path;
                         f_new.push(genome);
-
-                        // move the closest relative 
-                        //if let TreeVertex::Floor(ref mut f1) = s[0].vertex {
-                        //    let closest_relative = f1.remove(genome.closest_relative[genome.closest_relative.len()-1] as usize);
-                        //    f.push(closest_relative);
-                        //}
                         f_new.push(closest_relative);
                     }
 
@@ -445,10 +395,7 @@ impl PhyloTree {
             return Ok(());
         }
 
-
         Err(PhyloError::GenomeInsertError)
-        //Ok(())
-
     }
 
 }
