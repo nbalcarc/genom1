@@ -27,6 +27,7 @@ impl TreeNode {
     /// If we have a floor, we'll switch to a split where one of the children is our current floor
     pub fn split(&mut self, id: u8) {
         if let TreeVertex::Floor(_) = &mut self.vertex {
+            println!("SELF.COUNT IS {}", self.count);
             let mut floor_node = TreeNode::new_with_floor(id, self.count); //the new node that will point to our current floor
             let cur_floor = std::mem::replace(&mut self.vertex, TreeVertex::new_split()); //retrieve the current floor
             floor_node.vertex = cur_floor; //place the floor into the node
@@ -64,12 +65,14 @@ impl TreeNode {
                 match &tup.0.vertex {
                     TreeVertex::Split(nodes) => { //if we have more splits
 
-                        println!("made it into split, heads: {}", tup.1);
+                        println!("made it into split, heads for this: {}", tup.1);
+                        println!("Total heads: {}", heads.len());
 
                         // for each node, allocate a certain number of heads to it
                         let count = nodes.len().clone(); //number of nodes on this floor
                         let mut weights: Vec<u32> = Vec::new(); //keep track of how many genomes each node has
                         let mut indices: Vec<u32> = Vec::new(); //indices
+                        println!("Count: {}", count);
 
                         // prepare the weights, iterate for each node in the floor
                         // this sets the weight of each node as the number of genomes it holds
@@ -77,6 +80,9 @@ impl TreeNode {
                             weights.push(nodes[i as usize].count);
                             indices.push(i);
                         }
+
+                        dbg!(&weights);
+                        dbg!(&indices);
 
                         // get all the branches our heads will go to
                         let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
@@ -93,6 +99,8 @@ impl TreeNode {
                         }
 
                         heads = new_heads;
+                        dbg!("FINISHED DEALING WITH A SPLIT");
+                        println!("Heads: {}", heads.len());
                     },
                     TreeVertex::Floor(v) => { //if we have a floor of genomes
                         // assign each head its own genome
@@ -159,8 +167,8 @@ pub struct Genome {
 
 /// Manages the phylogenetic tree
 pub struct PhyloTree {
-    root: TreeNode,
-    next_index: u8,     // used to decide the next TreeNode id
+    pub root: TreeNode,
+    pub next_index: u8,     // used to decide the next TreeNode id
 }
 impl PhyloTree {
 
@@ -175,7 +183,7 @@ impl PhyloTree {
 
         // if we have an empty tree, just push it
         if let TreeVertex::Floor(s) = &mut self.root.vertex {
-            genome.path = vec![0];
+            genome.path = vec![0, 0];
             if s.len() == 0 {
                 println!("exiting early, root");
                 s.push(genome);
@@ -193,14 +201,13 @@ impl PhyloTree {
 
         // find the next set of 8 nodes in this loop
         'main_loop: loop {
-            dbg!("aaaaa");
             // retrieve the genomes for this node
             genomes = cur.find(8); //retrieve a random set of 8 genomes
-            dbg!("aaaa after");
             num_checked = cur.count; //update the number of genomes we've looked over
 
             // decide if we exit or do another iteration 
             if num_checked < 9 { //we have enough genomes to start the insertion step
+                println!("Have enough to start the insertion step");
                 break 'main_loop;                    
 
             } else { //compare similarities before starting next iteration or exiting
@@ -277,17 +284,18 @@ impl PhyloTree {
             println!("size of threads: {}", x);
             thr.join();
         }
-        //dbg!(distances);
 
         let distances = distances.lock().unwrap().clone();
-        //let dummy = (std::usize::MAX, Genome); //base case for the fold
+        dbg!(&distances);
         if let Some((best_dist,best_genome_path)) = distances.iter().min_by_key(|a|a.0) { //(path, distance), the best genome
+            dbg!("MADE IT INTO THE SOME");
             // distances.iter().max_by_key(|(_,d)|d)=> Option<_>
             let best_genome_mut = retrieve_genome(&mut self.root, &best_genome_path).map_err(|_| PhyloError::SearchGenomeError)?;
+            dbg!("HERE2");
 
             // update our new genome
             genome.closest_distance = *best_dist;
-            genome.closest_relative = best_genome_mut.path.clone();
+            //genome.closest_relative = best_genome_mut.path.clone();
             
             // first retrieve the parent node of the CR
             let relative_distance = genome.closest_distance as f64 / best_genome_mut.closest_distance as f64;
@@ -303,11 +311,15 @@ impl PhyloTree {
                 best_genome_mut.closest_relative = new_path; //save the new path to the new genome in the closest relative
             }
 
+            dbg!("HERE");
+
             // retrieve the parent node of the CR
             let parent_node = algorithms::get_mut_node_and_increment(&mut self.root, &best_genome_path)?;
+            dbg!("HERE1");
 
             // CASE 1
             if relative_distance <= 0.85 { //create a new branch, bring the new genome and its closest relative into it, update genome paths
+                dbg!("CASE 1");
                 parent_node.split(self.next_index);
                 if let TreeVertex::Split(ref mut s) = parent_node.vertex {
                     let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
@@ -316,7 +328,9 @@ impl PhyloTree {
                     new_path.push(0); //the new genome will be added to index 0
                     genome.path = new_path;
 
+
                     let closest_relative;
+                    let mut closest_path: Vec<u8> = Vec::new();
                     if let TreeVertex::Floor(ref mut f_original) = s[0].vertex {
                         closest_relative = f_original.remove(genome.closest_relative[genome.closest_relative.len()-1] as usize);
 
@@ -326,6 +340,7 @@ impl PhyloTree {
                             let mut new_path = node.path.clone();
                             new_path.remove(new_path.len()-1);
                             new_path.push(i.try_into().unwrap());
+                            closest_path = new_path.clone();
 
                             node.path = new_path;
                         }
@@ -348,6 +363,8 @@ impl PhyloTree {
                         let mut new_closest_path = genome.path.clone();
                         new_closest_path.remove(new_closest_path.len()-1);
                         new_closest_path.push(1);
+                        println!("MADE IT HERE BOIZ");
+                        //genome.closest_relative = closest_path;
                         genome.closest_relative = new_closest_path;
                         f_new.push(genome);
                         f_new.push(closest_relative);
@@ -358,30 +375,62 @@ impl PhyloTree {
 
             // CASE 2
             } else if relative_distance >= 1.17 { //create a new branch, place the new genome there
+                dbg!("CASE 2");
                 parent_node.split(self.next_index);
+
+                // retrieve the parent node above where the floor node is
                 if let TreeVertex::Split(ref mut s) = parent_node.vertex {
+
+
                     let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
                     new_path.remove(new_path.len()-1);
-                    new_path.push(self.next_index);
+                    new_path.push(self.next_index + 1); //the id of the new path
                     new_path.push(0); //the new genome will be added to index 0
                     genome.path = new_path;
 
                     // create the second branch, where the new genome and its CR will reside
-                    s.push(TreeNode::new_with_floor(self.next_index + 1, parent_node.count));
-                    if let TreeVertex::Floor(ref mut f) = s[1].vertex {
+                    s.push(TreeNode::new_with_floor(self.next_index + 1, 1));
 
-                        // update the genome's path to its closest relative (who is now in the same floor as it)
+                    for i in 0..s.len() {
+                        println!("the {}th index has a count of {}", i, s[i].count);
+                    }
+
+                    let new_genome_path = genome.path.clone();
+                    let mut new_genome_closest_relative: Vec<u8> = Vec::new();
+                    let mut new_genome_distance = genome.closest_distance;
+
+                    // update the genome's path to its closest relative
+                    if let TreeVertex::Floor(ref mut f) = s[1].vertex {
                         let mut new_closest_path = genome.path.clone();
-                        new_closest_path.remove(new_closest_path.len()-1);
-                        new_closest_path.push(1);
+                        let length = new_closest_path.len();
+                        new_closest_path[length-2] -= 1;
                         genome.closest_relative = new_closest_path;
+                        new_genome_closest_relative = genome.closest_relative.clone(); //record the path of our new genome
                         f.push(genome);
                     }
+
+                    // update the paths of the genomes in the original floor
+                    if let TreeVertex::Floor(ref mut f) = s[0].vertex {
+                        for cur_genome in f {
+                            let mut new_path = cur_genome.path.clone();
+                            let length = new_path.len();
+                            new_path.insert(length-1, self.next_index);
+                            cur_genome.path = new_path;
+                            if cur_genome.path == new_genome_closest_relative { //if this is the closest relative, update its info
+                                cur_genome.closest_relative = new_genome_path.clone();
+                                cur_genome.closest_distance = new_genome_distance;
+                            }
+                        }
+                    }
+
+
+                    dbg!(&s);
                 }
                 self.next_index = self.next_index + 2;
 
             // CASE 3
             } else { //place the new genome in the same branch as its closest relative
+                dbg!("CASE 3");
                 if let TreeVertex::Floor(ref mut f) = parent_node.vertex {
                     let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
                     new_path.remove(new_path.len()-1);
@@ -394,6 +443,7 @@ impl PhyloTree {
             //self.next_index = self.next_index + 1;
             return Ok(());
         }
+        dbg!("DISTANCES WAS EMPTY");
 
         Err(PhyloError::GenomeInsertError)
     }

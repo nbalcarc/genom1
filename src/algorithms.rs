@@ -208,7 +208,10 @@ pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
 
 /// Retrieve a genome from the tree
 pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut Genome, PhyloError> {
+    dbg!("WE BOUTTA RETRIEVE A GENOME");
+    dbg!(path);
     if root.id != path[0] {
+        dbg!("WE HERE INSIDE");
         return Err(PhyloError::SearchGenomeError);
     }
 
@@ -240,6 +243,7 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
             }
         }
     }
+    dbg!("WE HERE AT THE BOTTOM");
 
     Err(PhyloError::SearchGenomeError)
 }
@@ -299,6 +303,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
 
     // for each part of the path, find the node that corresponds to it and push it to the return vector
     let mut cur = root;
+    println!("ROOT NODE HAS {} TO BEGIN WITH", cur.count);
     cur.count = cur.count + 1;
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
         // find what type of vertex we're working with
@@ -312,6 +317,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
                 for node in s {
                     if node.id == path[i] { //found the next node
                         cur = node; // This was a mutable ref to a mutable ref; not what you're looking for
+                        println!("INCREMENTING THE COUNT OF A NODE");
                         cur.count = cur.count + 1; //increment the count
                         continue 'main_loop;
                     }
@@ -329,6 +335,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
             }
         }
     }
+    cur.count = cur.count - 1;
     Ok(cur) 
 }
 

@@ -97,7 +97,17 @@ fn tree_generation() {
                 closest_distance: 0,
             };
 
-            tree.push(genome);
+            println!("TOTAL NODES BEFORE PUSHING: {}", tree.root.count);
+            let res = tree.push(genome);
+            match res {
+                Ok(_) => {
+                    println!("SUCCESS: Pushed genome to tree without any problems");
+                },
+                Err(e) => {
+                    println!("ERROR WHEN ATTEMPTING TO PUSH: {}", e);
+                    return;
+                }
+            }
 
         }
     }
