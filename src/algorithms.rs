@@ -292,7 +292,7 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
 
 
 /// Return a mutable reference to a given node
-pub fn get_mut_node<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut TreeNode, PhyloError> {
+pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut TreeNode, PhyloError> {
     if root.id != path[0] { //return early if path already invalid
         return Err(PhyloError::SearchNodeError);
     }
@@ -302,7 +302,7 @@ pub fn get_mut_node<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mu
     cur.count = cur.count + 1;
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
         // find what type of vertex we're working with
-        match cur.vertex { // &mut cur.vertex didn't work, don't know why exactly
+        match  cur.vertex { // &mut cur.vertex didn't work, don't know why exactly
             // this just tales it by mutable ref, but I think that helps with your scoping problem
             // You were borrowing cur.vertex for the entire match expression, so you tried to return while it was
             // already dborrowed
@@ -347,7 +347,7 @@ pub fn get_mut_node<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mu
                 // That's a nono
                 // That's aliasing baby
                 //return Err(PhyloError::SearchNodeError); // This fixed it; I don't know what your errors mean, but something has to happen
-                return Ok(cur); // This one is trickier tbh
+                break 'main_loop;
             }
         }
     }

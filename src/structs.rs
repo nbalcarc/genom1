@@ -26,10 +26,12 @@ impl TreeNode {
 
     /// If we have a floor, we'll switch to a split where one of the children is our current floor
     pub fn split(&mut self, id: u8) {
-        let mut floor_node = TreeNode::new_with_floor(id, self.count); //the new node that will point to our current floor
-        let cur_floor = std::mem::replace(&mut self.vertex, TreeVertex::new_split()); //retrieve the current floor
-        floor_node.vertex = cur_floor; //place the floor into the node
-        self.vertex.push_node(floor_node); //push the newly created node containing our old floor into our split
+        if let TreeVertex::Floor(_) = &mut self.vertex {
+            let mut floor_node = TreeNode::new_with_floor(id, self.count); //the new node that will point to our current floor
+            let cur_floor = std::mem::replace(&mut self.vertex, TreeVertex::new_split()); //retrieve the current floor
+            floor_node.vertex = cur_floor; //place the floor into the node
+            self.vertex.push_node(floor_node); //push the newly created node containing our old floor into our split
+        }
     }
 
     pub fn find<'s>(&'s self, number_heads:u32) -> Vec<&'s Genome> {
@@ -329,17 +331,117 @@ impl PhyloTree {
             // start inserting the genome, make sure to reorganize the tree, all node counts, and maybe all genome paths
 
             // first retrieve the parent node of the CR
-            
-
             let relative_distance = genome.closest_distance as f64 / best_genome_mut.closest_distance as f64;
-            if relative_distance <= 0.85 { //create a new branch, bring the new genome and its closest relative into it, update genome paths
-                //
-            } else if relative_distance >= 1.17 { //create a new branch, place the new genome there
-                //
-            } else { //place the new genome in the same branch as its closest relative
-                //
+
+            // if the new genome is the closest relative's new closest relative
+
+            // if we will split, then the new genome will end up on the new split
+            if relative_distance < 1.0 {
+                // update information of closest relative
+                best_genome_mut.closest_distance = genome.closest_distance; //reassign the genome's closest relative
+                let mut new_path = best_genome_mut.closest_relative.clone(); //grab the current closest path
+                new_path.remove(new_path.len()-1); //remove the index
+                new_path.push(self.next_index + 1); //add id of the new split
+                new_path.push(0); //the new genome will be added to index 0
+                best_genome_mut.closest_relative = new_path; //save the new path to the new genome in the closest relative
             }
 
+            // retrieve the parent node of the CR
+            let parent_node = algorithms::get_mut_node_and_increment(&mut self.root, &best_genome_path)?;
+
+            // CASE 1
+            if relative_distance <= 0.85 { //create a new branch, bring the new genome and its closest relative into it, update genome paths
+                parent_node.split(self.next_index);
+                if let TreeVertex::Split(ref mut s) = parent_node.vertex {
+                    let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
+                    new_path.remove(new_path.len()-1);
+                    new_path.push(self.next_index);
+                    new_path.push(0); //the new genome will be added to index 0
+                    genome.path = new_path;
+
+                    let closest_relative;
+                    if let TreeVertex::Floor(ref mut f_original) = s[0].vertex {
+                        closest_relative = f_original.remove(genome.closest_relative[genome.closest_relative.len()-1] as usize);
+
+                        // update all the paths because the vector was just shifted
+                        for i in 0..f_original.len() {
+                            let mut node = &mut f_original[i];
+                            let mut new_path = node.path.clone();
+                            new_path.remove(new_path.len()-1);
+                            new_path.push(i.try_into().unwrap());
+
+                            node.path = new_path;
+                        }
+
+
+                    } else {
+                        closest_relative = Genome {
+                            path: Vec::new(),
+                            dir: String::from(""),
+                            kmers: Vec::new(),
+                            closest_relative: Vec::new(),
+                            closest_distance: 0,
+                        }
+                    }
+
+                    // create the second branch, where the new genome and its CR will reside
+                    s.push(TreeNode::new_with_floor(self.next_index + 1, parent_node.count));
+                    if let TreeVertex::Floor(ref mut f_new) = s[1].vertex {
+
+                        // update the genome's path to its closest relative (who is now in the same floor as it)
+                        let mut new_closest_path = genome.path.clone();
+                        new_closest_path.remove(new_closest_path.len()-1);
+                        new_closest_path.push(1);
+                        genome.closest_relative = new_closest_path;
+                        f_new.push(genome);
+
+                        // move the closest relative 
+                        //if let TreeVertex::Floor(ref mut f1) = s[0].vertex {
+                        //    let closest_relative = f1.remove(genome.closest_relative[genome.closest_relative.len()-1] as usize);
+                        //    f.push(closest_relative);
+                        //}
+                        f_new.push(closest_relative);
+                    }
+
+                }
+                self.next_index = self.next_index + 2;
+
+            // CASE 2
+            } else if relative_distance >= 1.17 { //create a new branch, place the new genome there
+                parent_node.split(self.next_index);
+                if let TreeVertex::Split(ref mut s) = parent_node.vertex {
+                    let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
+                    new_path.remove(new_path.len()-1);
+                    new_path.push(self.next_index);
+                    new_path.push(0); //the new genome will be added to index 0
+                    genome.path = new_path;
+
+                    // create the second branch, where the new genome and its CR will reside
+                    s.push(TreeNode::new_with_floor(self.next_index + 1, parent_node.count));
+                    if let TreeVertex::Floor(ref mut f) = s[1].vertex {
+
+                        // update the genome's path to its closest relative (who is now in the same floor as it)
+                        let mut new_closest_path = genome.path.clone();
+                        new_closest_path.remove(new_closest_path.len()-1);
+                        new_closest_path.push(1);
+                        genome.closest_relative = new_closest_path;
+                        f.push(genome);
+                    }
+                }
+                self.next_index = self.next_index + 2;
+
+            // CASE 3
+            } else { //place the new genome in the same branch as its closest relative
+                if let TreeVertex::Floor(ref mut f) = parent_node.vertex {
+                    let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
+                    new_path.remove(new_path.len()-1);
+                    new_path.push(f.len().try_into().unwrap());
+                    genome.path = new_path;
+                    f.push(genome);
+                }
+            }
+
+            //self.next_index = self.next_index + 1;
             return Ok(());
         }
 
