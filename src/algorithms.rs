@@ -291,5 +291,69 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
 }
 
 
+/// Return a mutable reference to a given node
+pub fn get_mut_node<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut TreeNode, PhyloError> {
+    if root.id != path[0] { //return early if path already invalid
+        return Err(PhyloError::SearchNodeError);
+    }
+
+    // for each part of the path, find the node that corresponds to it and push it to the return vector
+    let mut cur = root;
+    cur.count = cur.count + 1;
+    'main_loop: for i in 1..path.len()-1 { //exclude the last index
+        // find what type of vertex we're working with
+        match cur.vertex { // &mut cur.vertex didn't work, don't know why exactly
+            // this just tales it by mutable ref, but I think that helps with your scoping problem
+            // You were borrowing cur.vertex for the entire match expression, so you tried to return while it was
+            // already dborrowed
+            // wait so how did you make it not borrow the whole time, i have had this problem before
+            // ref: make the thing I matched in this pattern a reference to the value
+            // mut: make the thing I matched in this pattern mutable
+            // -> ref mut: make the thing I matched in this pattern a mutable reference to the value
+            // so why does it drop the reference to cur up at the top of the match?
+            // I'm not 100% on it tbh
+            // But basically, you were borrowing on line 305, that borrow didnt end till 349, and that was the problem
+            // makes sense
+            // I think since this line takes it by reference, it doesnt need to
+            // I aslo think this would 
+            TreeVertex::Split(ref mut s) => { //split found
+                // What does this comment even mean? lol it means a split shouldn't be 1 before an index, it should be a floor
+                if i >= path.len()-2 { //too close to the edge, split cannot exist where a floor should be right before an index
+                    return Err(PhyloError::SearchNodeError);
+                }
+                // we aren't too close to the edge, find the next node with the given id
+                // find the node to traverse next
+                for node in s {
+                    if node.id == path[i] { //found the next node
+                        //std::mem::replace(cur, node); // Oh this is *not* what you want, I'm almost positve
+                        cur = node; // This was a mutable ref to a mutable ref; not what you're looking for
+                        cur.count = cur.count + 1; //increment the count
+                        continue 'main_loop;
+                    }
+                    continue;
+                }
+                // if we reach here, then we couldn't find the node
+                return Err(PhyloError::SearchNodeError);
+
+            },
+            TreeVertex::Floor(_) => { //floor found
+                if i != path.len() - 2 { //if this isn't the second-to-last index
+                    return Err(PhyloError::SearchNodeError);
+                }
+                // the for loop will boot us out into the return after this iteration
+                // THIS IS BAD
+                // DO YOU NOT REMEMBER THE LAST PROBLEM WE HAD?
+                // At the end of this block, curr.vertex will *still be borrowed*
+                // That's a nono
+                // That's aliasing baby
+                //return Err(PhyloError::SearchNodeError); // This fixed it; I don't know what your errors mean, but something has to happen
+                return Ok(cur); // This one is trickier tbh
+            }
+        }
+    }
+    Ok(cur) 
+}
+
+
 
 

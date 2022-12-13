@@ -168,7 +168,7 @@ pub struct Genome {
     pub dir: String,                // the directory of the genome
     pub kmers: Vec<String>,         // the list of kmers for this genome
     pub closest_relative: Vec<u8>, // the path of the closest relative
-    pub closest_distance: u32,      // Levenshtein distance between this genome and its closest relative
+    pub closest_distance: usize,      // Levenshtein distance between this genome and its closest relative
 }
 
 
@@ -203,7 +203,8 @@ impl PhyloTree {
         let mut checked: Vec<u8> = Vec::new(); //the paths we've checked so far
         let mut num_checked: u32; //the number of nodes we're checking this iteration
         let mut cur = &self.root; //the node we're checking next
-        let mut genomes: Vec<&Genome> = Vec::new();
+        checked.push(cur.id);
+        let mut genomes: Vec<&Genome>;
 
         // find the next set of 8 nodes in this loop
         'main_loop: loop {
@@ -244,9 +245,11 @@ impl PhyloTree {
                         // if our node is large enough to hold the threshold, and if the next node is also large enough then continue
                         continue
                     }
+
                     // if we hit here, then the node could the the last node before going under the threshold or last node entirely
                     // alternatively, this node must be smaller than the threshold and previous ones were blocked, so run again on this node
-                    // TODO CHOOSE THIS ONE
+                    cur = node_path[i];
+                    checked.push(cur.id);
                 }
 
             }
@@ -302,7 +305,7 @@ impl PhyloTree {
             //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
         }
 
-        dbg!("now we waiting");
+        //dbg!("now we waiting");
 
         // rejoin all threads back together
         let x = threads.len();
@@ -317,14 +320,32 @@ impl PhyloTree {
         if let Some((best_dist,best_genome_path)) = distances.iter().min_by_key(|a|a.0) { //(path, distance), the best genome
             // distances.iter().max_by_key(|(_,d)|d)=> Option<_>
             let best_genome_mut = retrieve_genome(&mut self.root, &best_genome_path).map_err(|_| PhyloError::SearchGenomeError)?;
+
+            // update our new genome
+            genome.closest_distance = *best_dist;
+            genome.closest_relative = best_genome_mut.path.clone();
             
             //let best_genome_parent = retrieve_genome(&mut self.root, best_genome.path).map_err(|_| PhyloError::SearchGenomeError)?;
+            // start inserting the genome, make sure to reorganize the tree, all node counts, and maybe all genome paths
+
+            // first retrieve the parent node of the CR
+            
+
+            let relative_distance = genome.closest_distance as f64 / best_genome_mut.closest_distance as f64;
+            if relative_distance <= 0.85 { //create a new branch, bring the new genome and its closest relative into it, update genome paths
+                //
+            } else if relative_distance >= 1.17 { //create a new branch, place the new genome there
+                //
+            } else { //place the new genome in the same branch as its closest relative
+                //
+            }
+
+            return Ok(());
         }
-       
 
-        // start inserting the genome, make sure to reorganize the tree and update all node counts
 
-        Ok(())
+        Err(PhyloError::GenomeInsertError)
+        //Ok(())
 
     }
 
