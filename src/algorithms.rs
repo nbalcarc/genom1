@@ -242,14 +242,54 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
     }
 
     Err(PhyloError::SearchGenomeError)
-
-
-
-
-
-
-    
-
-
 }
+
+
+/// Retrieves all TreeNodes leading up to the path, excludes the final one
+pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a TreeNode>, PhyloError> {
+    let mut ret = Vec::new();
+
+    if root.id != path[0] { //return early if path already invalid
+        return Err(PhyloError::SearchNodeError);
+    }
+
+    ret.push(root);
+
+    // for each part of the path, find the node that corresponds to it and push it to the return vector
+    let mut cur = root;
+    'main_loop: for i in 1..path.len()-1 { //exclude the last index
+
+        // find what type of vertex we're working with
+        match &cur.vertex {
+            TreeVertex::Split(s) => { //split found
+                if i >= path.len()-2 { //too close to the edge
+                    return Err(PhyloError::SearchNodeError);
+                }
+                // we aren't too close to the edge, find the next node with the given id
+                // find the node to traverse next
+                for node in s {
+                    if node.id == path[i] { //found the next node
+                        ret.push(node); //since we found a valid node, push it to ret
+                        cur = node;
+                        continue 'main_loop;
+                    }
+                    continue;
+                }
+                // if we reach here, then we couldn't find the node
+                return Err(PhyloError::SearchNodeError);
+
+            },
+            TreeVertex::Floor(_) => { //floor found
+                if i != path.len() - 2 { //if this isn't the second-to-last index
+                    return Err(PhyloError::SearchNodeError);
+                }
+                // the for loop will boot us out into the return after this iteration
+            }
+        }
+    }
+    Ok(ret)
+}
+
+
+
 

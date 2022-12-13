@@ -115,7 +115,7 @@ impl TreeNode {
                         //    options.remove(chosen);
                         //}
 
-                        dbg!("here");
+                        //dbg!("here");
                         
                         break;
                     }
@@ -199,19 +199,71 @@ impl PhyloTree {
             }
         }
 
-        // Method on Tree goes here
-        let genomes = self.root.find(8);
+        // prepare variables that will be updated each iteration
+        let mut checked: Vec<u8> = Vec::new(); //the paths we've checked so far
+        let mut num_checked: u32; //the number of nodes we're checking this iteration
+        let mut cur = &self.root; //the node we're checking next
+        let mut genomes: Vec<&Genome> = Vec::new();
 
+        // find the next set of 8 nodes in this loop
+        'main_loop: loop {
+            dbg!("aaaaa");
+            // retrieve the genomes for this node
+            genomes = cur.find(8); //retrieve a random set of 8 genomes
+            dbg!("aaaa after");
+            num_checked = cur.count; //update the number of genomes we've looked over
+
+            // decide if we exit or do another iteration 
+            if num_checked < 9 { //we have enough genomes to start the insertion step
+                break 'main_loop;                    
+
+            } else { //compare similarities before starting next iteration or exiting
+
+                // for each genome, calculate the kmer similarity
+                let mut distances = Vec::new();
+                for cur_genome in &genomes {
+                    distances.push((algorithms::kmer_similarity(*cur_genome, &genome), *cur_genome));
+                }
+                let best_genome = *distances.iter().max_by_key(|a|a.0).unwrap(); //(similarity, ref), the best genome
+                let node_path = algorithms::get_full_path(&self.root, &best_genome.1.path)?; //get the full list of nodes leading to the genome's parent
+                let path = best_genome.1.path.clone(); //the full path to the selected genome
+                println!("BOTH PATH SIZES ARE EQUAL?: {}", path.len() == node_path.len());
+
+                // check each node to see if we've checked it or not
+                for i in 0..node_path.len() {
+                    // skip all checked nodes (last one should always be unchecked naturally)
+                    // if this node is larger than threshold and next one is smaller than threshold, then choose this one
+                    // if this node is larger than threshold and the next one is also, then continue
+                    // if this node is smaller than threshold or the last one, then choose this one
+
+                    if checked.contains(&node_path[i].id) { //we've already checked this node
+                        continue;
+                    }
+                    let threshold = num_checked / 8;
+                    if node_path[i].count >= threshold && i+1 < node_path.len() && node_path[i+1].count >= threshold {
+                        // if our node is large enough to hold the threshold, and if the next node is also large enough then continue
+                        continue
+                    }
+                    // if we hit here, then the node could the the last node before going under the threshold or last node entirely
+                    // alternatively, this node must be smaller than the threshold and previous ones were blocked, so run again on this node
+                    // TODO CHOOSE THIS ONE
+                }
+
+            }
+
+        }
+
+        
         //Err(PhyloError::ConversionError)
         //dbg!(&genomes);
         //println!("{}", genomes.len());
-        dbg!("here, down");
 
         // launch the filter protocol
         // -find the closest relative
         // -start from the bottom, looking for the first node to have at most 1/8 of all nodes
         // -if that node is the node we just searched, then just choose the next node down
         // -"recurse"
+
 
         // if we've successfully reached the final 8 genomes
         // launch the insertion protocol
@@ -244,7 +296,7 @@ impl PhyloTree {
                 let distance = algorithms::levenshtein(&genome_str0, &genome_str1);
                 dist_arc.lock().unwrap().push((distance,genome_path));
             });
-            dbg!("idk here?");
+            //dbg!("idk here?");
             threads.push(cur_thread);
             //let genome_str1 = fs::read_to_string(&cur_genome.dir).map_err(|_| PhyloError::FileOpenError(String::from(&cur_genome.dir)))?;
             //distances.push(algorithms::levenshtein(&genome_str, &genome_str1));
@@ -270,7 +322,7 @@ impl PhyloTree {
         }
        
 
-        dbg!("here, down down");
+        // start inserting the genome, make sure to reorganize the tree and update all node counts
 
         Ok(())
 
