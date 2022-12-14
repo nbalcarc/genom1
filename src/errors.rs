@@ -9,7 +9,7 @@ pub enum PhyloError {
     KTooBig(u32),
     ConversionError,
     SearchGenomeError(String),
-    SearchNodeError,
+    SearchNodeError(String),
     GenomeInsertError,
 }
 impl Error for PhyloError {}
@@ -29,16 +29,16 @@ impl Display for PhyloError {
                 write!(f, "{}", s)
             },
             Self::ConversionError => {
-                write!(f, "Conversion error!")
+                write!(f, "ConversionError")
             },
             Self::SearchGenomeError(s) => {
-                write!(f, "Error when searching for a genome ({})", s)
+                write!(f, "SearchGenomeError ({})", s)
             },
-            Self::SearchNodeError => {
-                write!(f, "Error when searching for a node!")
+            Self::SearchNodeError(s) => {
+                write!(f, "SearchNodeError ({})", s)
             },
             Self::GenomeInsertError => {
-                write!(f, "Error when inserting a genome!")
+                write!(f, "GenomeInsertError")
             },
         }
     }

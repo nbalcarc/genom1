@@ -220,7 +220,7 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
                 if paths.len() == 1 { //if we hit a floor and we only have one index left
                     return Ok(&mut f[paths[0] as usize]);
                 } else { //something didn't match up, shouldn't hit a floor when there's only one index left
-                    return Err(PhyloError::SearchGenomeError(String::from("Ran into a floor unexpectedly")));
+                    return Err(PhyloError::SearchGenomeError(String::from("Found a split instead of a floor (split was later than expected)")));
                 }
             },
             TreeVertex::Split(s) => { //we hit a split
@@ -229,12 +229,12 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
                     if s[i].id == paths[paths.len()-1] { //if we found the next node in the path
                         cur = &mut s[i];
                         paths.remove(paths.len()-1);
-                        continue 'path_loop;
+                        continue 'path_loop; //
                     }
                     // if we found no node with the given id
                     //return Err(PhyloError::SearchGenomeError(String::from(format!("Found no node with the given ID"))));
                 }
-                return Err(PhyloError::SearchGenomeError(String::from("Found no node with the given ID")));
+                return Err(PhyloError::SearchGenomeError(String::from("Couldn't find a node with the given ID")));
             }
         }
     }
@@ -249,7 +249,7 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
     let mut ret = Vec::new();
 
     if root.id != path[0] { //return early if path already invalid
-        return Err(PhyloError::SearchNodeError);
+        return Err(PhyloError::SearchNodeError(String::from("full_path: Root ID doesn't match with expected value")));
     }
 
     ret.push(root);
@@ -262,7 +262,7 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
         match &cur.vertex {
             TreeVertex::Split(s) => { //split found
                 if i >= path.len()-2 { //too close to the edge
-                    return Err(PhyloError::SearchNodeError);
+                    return Err(PhyloError::SearchNodeError(String::from("full_path: Found a split instead of a floor (split was later than expected)")));
                 }
                 // we aren't too close to the edge, find the next node with the given id
                 // find the node to traverse next
@@ -272,15 +272,15 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
                         cur = node;
                         continue 'main_loop;
                     }
-                    continue;
+                    //continue;
                 }
                 // if we reach here, then we couldn't find the node
-                return Err(PhyloError::SearchNodeError);
+                return Err(PhyloError::SearchNodeError(String::from("full_path: Couldn't find a node with the given ID")));
 
             },
             TreeVertex::Floor(_) => { //floor found
                 if i != path.len() - 2 { //if this isn't the second-to-last index
-                    return Err(PhyloError::SearchNodeError);
+                    return Err(PhyloError::SearchNodeError(String::from("full_path: Found a floor instead of a split (floor was earlier than expected)")));
                 }
                 // the for loop will boot us out into the return after this iteration
             }
@@ -293,20 +293,21 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
 /// Return a mutable reference to a given node
 pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut TreeNode, PhyloError> {
     if root.id != path[0] { //return early if path already invalid
-        return Err(PhyloError::SearchNodeError);
+        return Err(PhyloError::SearchNodeError(String::from("get_node: Root ID doesn't match with expected value")));
     }
 
     // for each part of the path, find the node that corresponds to it and push it to the return vector
     let mut cur = root;
-    println!("ROOT NODE HAS {} TO BEGIN WITH", cur.count);
     cur.count = cur.count + 1; 
-    println!("ROOT NODE NOW HAS {}", cur.count);
+
+    dbg!(&path);
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
+        dbg!(format!("ITERATION {}", i));
         // find what type of vertex we're working with
         match cur.vertex {
             TreeVertex::Split(ref mut s) => { //split found
-                if i >= path.len()-2 { //too close to the edge, split cannot exist where a floor should be right before an index
-                    return Err(PhyloError::SearchNodeError);
+                if i >= path.len()-1 { //too close to the edge, split cannot exist where a floor should be right before an index
+                    return Err(PhyloError::SearchNodeError(String::from("get_node: Found a split instead of a floor (split was later than expected)")));
                 }
                 // we aren't too close to the edge, find the next node with the given id
                 // find the node to traverse next
@@ -320,12 +321,12 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
                     continue;
                 }
                 // if we reach here, then we couldn't find the node
-                return Err(PhyloError::SearchNodeError);
+                return Err(PhyloError::SearchNodeError(String::from("get_node: Couldn't find a node with the given ID")));
 
             },
             TreeVertex::Floor(_) => { //floor found
-                if i != path.len() - 2 { //if this isn't the second-to-last index
-                    return Err(PhyloError::SearchNodeError);
+                if i != path.len() - 1 { //if this isn't the second-to-last index
+                    return Err(PhyloError::SearchNodeError(String::from("get_node: Found a floor instead of a split (floor was earlier than expected)")));
                 }
                 break 'main_loop;
             }
