@@ -119,67 +119,6 @@ pub fn random_weighted(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, li
 }
 
 
-/// Given a list of numbers and weights, choose a random element; if limitless is false then the probability acts like a limit
-pub fn random_weighted_old(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, limitless: bool) -> Vec<u32> {
-
-    // return if input is invalid
-    if elems.len() != probabilities.len() {
-        dbg!("EXITING EARLY");
-        return Vec::new();
-    }
-
-    // preparing
-    let mut total: u32 = 0;
-    let mut new_probabilities: Vec<u32> = Vec::new();
-    let mut amounts: Vec<u32> = vec![0; elems.len()];
-
-    // first total up the weights
-    for prob in &probabilities {
-        total += prob;
-        new_probabilities.push(total); //tally up all the probabilities up until now
-    }
-
-    println!("HEREEEEE");
-    dbg!(&new_probabilities);
-
-    // return if input is invalid
-    //if new_probabilities.len() < rounds.try_into().unwrap() {
-    //    dbg!("EXITING EARLY HERE");
-    //    return Vec::new();
-    //}
-    let mut rng = rand::thread_rng();
-    let mut ret: Vec<u32> = Vec::new();
-
-    // for the number of items we want to generate
-    for _ in 0..rounds {
-        dbg!("RANDOM ITERATION");
-        'limitless_iter: loop {
-            let gen = rng.gen_range(0..new_probabilities.len()); //generate the new random number
-
-            // for every item
-            for i in 0..new_probabilities.len() {
-                if gen < new_probabilities[i].try_into().unwrap() { //we found the index
-
-                    // if we're limiting the amounts and we've reached our limit, generate again
-                    if !limitless && amounts[i] >= probabilities[i] {
-                        continue 'limitless_iter;
-                    }
-
-                    ret.push(elems[i]); //push the selected element to the return vector
-                    amounts[1] += 1;
-                    break;
-                } else {
-                    dbg!("huh okay");
-                }
-            }
-            break;
-        }           
-    }
-    
-    ret
-}
-
-
 /// Convert a vector of items into a hashmap where every key is tied to the number of its occurrences in the vector
 pub fn vec_to_dict(elems: Vec<u32>) -> HashMap<u32, u32> {
     let mut ret = HashMap::new();
@@ -188,7 +127,7 @@ pub fn vec_to_dict(elems: Vec<u32>) -> HashMap<u32, u32> {
         if ret.contains_key(&elem) {
             *ret.get_mut(&elem).unwrap() += 1;
         } else {
-            ret.insert(elem, 0);
+            ret.insert(elem, 1);
         }
     }
     
