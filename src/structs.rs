@@ -1,6 +1,6 @@
-use std::{thread, fs::{File, self}, sync::{Arc, Mutex}};
+use std::{thread, fs, sync::{Arc, Mutex}};
 
-use rand::Rng;
+//use rand::Rng;
 
 use crate::{errors::PhyloError, algorithms::{self, retrieve_genome}};
 
@@ -15,9 +15,9 @@ pub struct TreeNode {
 impl TreeNode {
 
     /// Initializes a new TreeNode with a TreeVertex::Split
-    pub fn new_with_split(id: u8, count: u32) -> Self {
-        TreeNode { id: id, vertex: TreeVertex::Split(Vec::new()), count: count }
-    }
+    //pub fn new_with_split(id: u8, count: u32) -> Self {
+    //    TreeNode { id: id, vertex: TreeVertex::Split(Vec::new()), count: count }
+    //}
 
     /// Initializes a new TreeNode with a TreeVertex::Floor
     pub fn new_with_floor(id: u8, count: u32) -> Self {
@@ -35,18 +35,21 @@ impl TreeNode {
         }
     }
 
-    pub fn find<'s>(&'s self, number_heads:u32) -> Vec<&'s Genome> {
+    pub fn find<'s>(&'s self, number_heads: u32) -> Vec<&'s Genome> {
         /* First we want to find 8 genomes to compare to, if available */
 
         let mut heads: Vec<(&TreeNode, u32)> = Vec::new(); //keep track of all heads (ref, heads)
-        let mut genomes: Vec<&Genome> = Vec::with_capacity(8); //result
+        let mut genomes: Vec<&Genome> = Vec::with_capacity(number_heads.try_into().unwrap()); //result
         heads.push((self, number_heads)); //push the root as the first head
+        println!("TOTAL NUMBER OF HEADS CHOSEN: {}", number_heads);
 
         let mut thread_rng = rand::thread_rng();
 
         // Find all the genomes to run the kmer check on
         while heads.len() > 0 {
-            println!("running with heads: {}", heads[0].1);
+            //println!("running with heads num: {}", heads[0].1);
+            println!("RUNNING WITH HEAD GUIDES: {}", heads.len());
+            //dbg!(&heads);
 
             // Repeat once per tuple in the current heads
             for i in 0..heads.len() {
@@ -57,6 +60,7 @@ impl TreeNode {
 
                 // if the TreeNode has fewer genomes than we have heads
                 if &tup.0.count < &tup.1 {
+                    println!("ADJUSTING THE NUMBER OF HEADS FROM {} to {}", tup.1, tup.0.count);
                     tup.1 = tup.0.count; //reduce the number of heads
                 }
 
@@ -81,17 +85,23 @@ impl TreeNode {
                             indices.push(i);
                         }
 
-                        dbg!(&weights);
-                        dbg!(&indices);
+                        //dbg!(&weights);
+                        //dbg!(&indices);
 
                         // get all the branches our heads will go to
-                        let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
+                        //dbg!(&tup.1);
+                        let weight_results = algorithms::random_weighted(indices, weights, tup.1, false);
+                        dbg!(&weight_results);
+                        let branches = algorithms::vec_to_dict(weight_results);
+                        //let branches = algorithms::vec_to_dict(algorithms::random_weighted(weights, indices, tup.1, false));
+                        dbg!(&branches);
                        
                         // iterate through all the branches that will receive heads
                         for branch_index in branches.keys() {
+                            dbg!("ITERATION");
 
                             // update the local path
-                            let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
+                            //let this_id = nodes[*branch_index as usize].id.clone(); //retrieve the id of the next node
 
                             // push the new head to the list of heads
                             let node_ref: &TreeNode = &nodes[*branch_index as usize]; //retrieve a reference to the next node
@@ -134,9 +144,9 @@ impl TreeVertex {
     }
 
     /// Initializes a new TreeVertex floor
-    pub fn new_floor() -> Self {
-        TreeVertex::Floor(Vec::new())
-    }
+    //pub fn new_floor() -> Self {
+    //    TreeVertex::Floor(Vec::new())
+    //}
 
     /// Push a new node to a Split
     pub fn push_node(&mut self, node: TreeNode) {
@@ -145,12 +155,12 @@ impl TreeVertex {
         }
     }
 
-    /// Push a new genome to a Floor 
-    pub fn push_genome(&mut self, genome: Genome) {
-        if let TreeVertex::Floor(v) = self {
-            v.push(genome);
-        }
-    }
+    // Push a new genome to a Floor 
+    //pub fn push_genome(&mut self, genome: Genome) {
+    //    if let TreeVertex::Floor(v) = self {
+    //        v.push(genome);
+    //    }
+    //}
 }
 
 
@@ -180,6 +190,9 @@ impl PhyloTree {
     /// Push a new genome onto the tree
     pub fn push(&mut self, mut genome: Genome) -> Result<(), PhyloError>{
         //let refs: Vec<&mut TreeNode> = Vec::new(); //store all references to each layer here
+        dbg!("======== PUSHING A NEW GENOME NOW ========");
+
+        let root_count_increment: bool;
 
         // if we have an empty tree, just push it
         if let TreeVertex::Floor(s) = &mut self.root.vertex {
@@ -190,7 +203,12 @@ impl PhyloTree {
                 s.push(genome);
                 self.root.count = 1;
                 return Ok(());
-            }
+            }// else {
+            //    self.root.count += 1; //we increment because the get_mut_node_and_increment function will fight us here
+            //}
+            root_count_increment = true;
+        } else {
+            root_count_increment = false;
         }
 
         // prepare variables that will be updated each iteration
@@ -283,7 +301,7 @@ impl PhyloTree {
         let x = threads.len();
         for thr in threads {
             println!("size of threads: {}", x);
-            thr.join();
+            thr.join().map_err(|_| PhyloError::GenomeInsertError)?;
         }
 
         let distances = distances.lock().unwrap().clone();
@@ -326,7 +344,7 @@ impl PhyloTree {
                 if let TreeVertex::Split(ref mut s) = parent_node.vertex {
 
                     let mut genome_path = best_genome_path.clone(); //update the path of the newly inserted genome
-                    let mut cr_path = best_genome_path.clone(); //update the path of the existing node (since the tree will be reorganized)
+                    //let mut cr_path = best_genome_path.clone(); //update the path of the existing node (since the tree will be reorganized)
                     let distance = genome.closest_distance; //retrieve the distance
 
                     genome_path.remove(genome_path.len()-1); //remove the index
@@ -349,7 +367,7 @@ impl PhyloTree {
                     //let mut closest_path: Vec<u8> = Vec::new();
                     if let TreeVertex::Floor(ref mut f_original) = s[0].vertex {
                         //dbg!(&genome.closest_relative);
-                        closest_relative = f_original.remove(genome.closest_relative[genome.closest_relative.len()-1] as usize);
+                        closest_relative = f_original.remove(best_genome_path[best_genome_path.len()-1] as usize); //grab the closest relative Genome so we can move it
 
                         // update all the paths because the vector was just shifted
                         for i in 0..f_original.len() {
@@ -457,9 +475,15 @@ impl PhyloTree {
                 }
             }
 
-            //self.next_index = self.next_index + 1;
+            // the function get_mut_node_and_increment fights our root's count when we have a floor, so we account for that here
+            if root_count_increment {
+                println!("MANUALLY INCREMENTED THE ROOT COUNT");
+                self.root.count += 1;
+            }
             return Ok(());
         }
+
+
         dbg!("DISTANCES WAS EMPTY");
 
         Err(PhyloError::GenomeInsertError)

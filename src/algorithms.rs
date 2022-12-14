@@ -77,6 +77,54 @@ pub fn random_weighted(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, li
 
     // return if input is invalid
     if elems.len() != probabilities.len() {
+        dbg!("EXITING EARLY");
+        return Vec::new();
+    }
+
+    // setup the amounts vector
+    let mut amounts: Vec<u32> = Vec::new();
+    for i in 0..elems.len() { //for each element,
+        for _ in 0..probabilities[i] { //for the amount of weight it has,
+            amounts.push(elems[i]); //push it to the amounts vector
+        }
+    }
+
+    // ensure our number of rounds works if we're not going limitless
+    if !limitless && rounds as usize > amounts.len() {
+        dbg!("EXITING EARLY HERE");
+        dbg!(amounts.len());
+        dbg!(rounds);
+        dbg!(elems);
+        dbg!(probabilities);
+        return Vec::new();
+    }
+
+    let mut ret: Vec<u32> = Vec::new();
+    let mut rng = rand::thread_rng();
+    let mut gen;
+
+    // start the picking loop
+    for _ in 0..rounds {
+        gen = rng.gen_range(0..amounts.len()); //generate our random index
+        
+        if limitless {
+            ret.push(amounts[gen]);
+        } else {
+            ret.push(amounts.remove(gen));
+        }
+    }
+
+    ret
+
+}
+
+
+/// Given a list of numbers and weights, choose a random element; if limitless is false then the probability acts like a limit
+pub fn random_weighted_old(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, limitless: bool) -> Vec<u32> {
+
+    // return if input is invalid
+    if elems.len() != probabilities.len() {
+        dbg!("EXITING EARLY");
         return Vec::new();
     }
 
@@ -85,28 +133,32 @@ pub fn random_weighted(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, li
     let mut new_probabilities: Vec<u32> = Vec::new();
     let mut amounts: Vec<u32> = vec![0; elems.len()];
 
-
     // first total up the weights
     for prob in &probabilities {
         total += prob;
         new_probabilities.push(total); //tally up all the probabilities up until now
     }
 
+    println!("HEREEEEE");
+    dbg!(&new_probabilities);
+
     // return if input is invalid
-    if total < rounds {
-        return Vec::new();
-    }
+    //if new_probabilities.len() < rounds.try_into().unwrap() {
+    //    dbg!("EXITING EARLY HERE");
+    //    return Vec::new();
+    //}
     let mut rng = rand::thread_rng();
     let mut ret: Vec<u32> = Vec::new();
 
     // for the number of items we want to generate
     for _ in 0..rounds {
+        dbg!("RANDOM ITERATION");
         'limitless_iter: loop {
-            let gen = rng.gen_range(0..total); //generate the new random number
+            let gen = rng.gen_range(0..new_probabilities.len()); //generate the new random number
 
             // for every item
             for i in 0..new_probabilities.len() {
-                if gen < new_probabilities[i] { //we found the index
+                if gen < new_probabilities[i].try_into().unwrap() { //we found the index
 
                     // if we're limiting the amounts and we've reached our limit, generate again
                     if !limitless && amounts[i] >= probabilities[i] {
@@ -116,6 +168,8 @@ pub fn random_weighted(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, li
                     ret.push(elems[i]); //push the selected element to the return vector
                     amounts[1] += 1;
                     break;
+                } else {
+                    dbg!("huh okay");
                 }
             }
             break;
@@ -304,7 +358,8 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
     // for each part of the path, find the node that corresponds to it and push it to the return vector
     let mut cur = root;
     println!("ROOT NODE HAS {} TO BEGIN WITH", cur.count);
-    cur.count = cur.count + 1;
+    cur.count = cur.count + 1; 
+    println!("ROOT NODE NOW HAS {}", cur.count);
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
         // find what type of vertex we're working with
         match cur.vertex {
@@ -335,7 +390,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
             }
         }
     }
-    cur.count = cur.count - 1;
+    cur.count = cur.count - 1; //don't increment the base level of nodes, because the behavior here differs
     Ok(cur) 
 }
 
