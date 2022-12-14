@@ -4,6 +4,7 @@ use std::{path::Path, env, fs::{self, File}, os::unix::prelude::FileExt};
 mod algorithms;
 mod errors;
 mod structs;
+mod output;
 
 
 /// A function dedicated to testing functionality
