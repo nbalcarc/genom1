@@ -87,7 +87,7 @@ fn tree_generation() {
             }
             //println!("{}", file_path);
             let kmers = algorithms::generate_kmers(&file_path, 12, 64).unwrap();
-            let mut genome = Genome {
+            let genome = Genome {
                 path: Vec::new(),
                 dir: file_path,
                 kmers: kmers,
@@ -99,6 +99,7 @@ fn tree_generation() {
             match res {
                 Ok(_) => {
                     println!("SUCCESS: Pushed genome to tree without any problems");
+                    dbg!(&tree);
                 },
                 Err(e) => {
                     println!("ERROR WHEN ATTEMPTING TO PUSH: {}", e);

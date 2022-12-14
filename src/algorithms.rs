@@ -37,7 +37,6 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
 
     // iterate once for every letter in the long word
     for y in 0..longd {
-        //println!("{} of {}!", y, longd);
         cur[0] = y+1; //set the character index
 
         // iterate once for every letter in the short word (size of the arrays)
@@ -53,7 +52,6 @@ pub fn levenshtein(first: &str, second: &str) -> usize {
             }
 
             // insert the minimum cost into the array
-            //cur[x+1] = *[del_cost, ins_cost, sub_cost].iter().min().unwrap();
             cur[x+1] = if del_cost < ins_cost && del_cost < sub_cost {
                 del_cost
             } else if ins_cost < del_cost && ins_cost < sub_cost {
@@ -179,7 +177,6 @@ pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
     let kmers = host.kmers.clone();
    
     // open file
-    //let mut buffer: Vec<u8> = vec![0; 1024];
     let file = File::open(&guest.dir).unwrap();
     let mut reader = BufReader::new(file);
 
@@ -201,9 +198,6 @@ pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
 
 /// Retrieve a genome from the tree
 pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut Genome, PhyloError> {
-    dbg!("WE BOUTTA RETRIEVE A GENOME");
-    dbg!(path);
-    dbg!(&root);
     if root.id != path[0] {
         return Err(PhyloError::SearchGenomeError(String::from("Root ID was not 0")));
     }
@@ -224,21 +218,17 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
                 }
             },
             TreeVertex::Split(s) => { //we hit a split
-                println!("LOOKING FOR: {}", paths[paths.len()-1]);
                 for i in 0..s.len() { //iterate through every node in this split
                     if s[i].id == paths[paths.len()-1] { //if we found the next node in the path
                         cur = &mut s[i];
                         paths.remove(paths.len()-1);
                         continue 'path_loop; //
                     }
-                    // if we found no node with the given id
-                    //return Err(PhyloError::SearchGenomeError(String::from(format!("Found no node with the given ID"))));
                 }
                 return Err(PhyloError::SearchGenomeError(String::from("Couldn't find a node with the given ID")));
             }
         }
     }
-    dbg!("WE HERE AT THE BOTTOM");
 
     Err(PhyloError::SearchGenomeError(String::from("Catch all problem")))
 }
@@ -272,7 +262,6 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
                         cur = node;
                         continue 'main_loop;
                     }
-                    //continue;
                 }
                 // if we reach here, then we couldn't find the node
                 return Err(PhyloError::SearchNodeError(String::from("full_path: Couldn't find a node with the given ID")));
@@ -300,9 +289,8 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
     let mut cur = root;
     cur.count = cur.count + 1; 
 
-    dbg!(&path);
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
-        dbg!(format!("ITERATION {}", i));
+        
         // find what type of vertex we're working with
         match cur.vertex {
             TreeVertex::Split(ref mut s) => { //split found
@@ -314,7 +302,6 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
                 for node in s {
                     if node.id == path[i] { //found the next node
                         cur = node; // This was a mutable ref to a mutable ref; not what you're looking for
-                        println!("INCREMENTING THE COUNT OF A NODE");
                         cur.count = cur.count + 1; //increment the count
                         continue 'main_loop;
                     }
