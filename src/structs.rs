@@ -309,7 +309,7 @@ impl PhyloTree {
         if let Some((best_dist,best_genome_path)) = distances.iter().min_by_key(|a|a.0) { //(path, distance), the best genome
             dbg!("MADE IT INTO THE SOME");
             // distances.iter().max_by_key(|(_,d)|d)=> Option<_>
-            let best_genome_mut = retrieve_genome(&mut self.root, &best_genome_path).map_err(|_| PhyloError::SearchGenomeError)?;
+            let best_genome_mut = retrieve_genome(&mut self.root, &best_genome_path)?;
             dbg!("HERE2");
 
             // update our new genome
@@ -349,9 +349,13 @@ impl PhyloTree {
 
                     genome_path.remove(genome_path.len()-1); //remove the index
                     genome_path.push(self.next_index+1); //push the new split
-                    let mut cr_path = best_genome_path.clone(); //update the path of the existing node (since the tree will be reorganized)
+                    let mut cr_path = genome_path.clone(); //update the path of the existing node (since the tree will be reorganized)
                     genome_path.push(0); //the new genome will be added to index 0
                     cr_path.push(1); //the cr genome will be added to index 1
+
+                    println!("HERE DEBUGGING PATHS");
+                    dbg!(&genome_path);
+                    dbg!(&cr_path);
 
                     
                     genome.path = genome_path.clone();

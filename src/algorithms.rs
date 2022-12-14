@@ -203,9 +203,9 @@ pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
 pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a mut Genome, PhyloError> {
     dbg!("WE BOUTTA RETRIEVE A GENOME");
     dbg!(path);
+    dbg!(&root);
     if root.id != path[0] {
-        dbg!("WE HERE INSIDE");
-        return Err(PhyloError::SearchGenomeError);
+        return Err(PhyloError::SearchGenomeError(String::from("Root ID was not 0")));
     }
 
     let mut paths = path.clone(); //prepare for looping
@@ -213,32 +213,34 @@ pub fn retrieve_genome<'a>(root: &'a mut TreeNode, path: &Vec<u8>) -> Result<&'a
     paths.reverse();
     paths.remove(paths.len()-1);
 
-    while paths.len() > 0 {
+    // iterate once per item in the path
+    'path_loop: while paths.len() > 0 {
         match &mut cur.vertex {
             TreeVertex::Floor(f) => { //we hit a floor
                 if paths.len() == 1 { //if we hit a floor and we only have one index left
                     return Ok(&mut f[paths[0] as usize]);
-                } else { //something didn't match up
-                    return Err(PhyloError::SearchGenomeError);
+                } else { //something didn't match up, shouldn't hit a floor when there's only one index left
+                    return Err(PhyloError::SearchGenomeError(String::from("Ran into a floor unexpectedly")));
                 }
             },
             TreeVertex::Split(s) => { //we hit a split
-                for i in 0..s.len() {
+                println!("LOOKING FOR: {}", paths[paths.len()-1]);
+                for i in 0..s.len() { //iterate through every node in this split
                     if s[i].id == paths[paths.len()-1] { //if we found the next node in the path
                         cur = &mut s[i];
                         paths.remove(paths.len()-1);
-                        break;
+                        continue 'path_loop;
                     }
                     // if we found no node with the given id
-                    return Err(PhyloError::SearchGenomeError);
+                    //return Err(PhyloError::SearchGenomeError(String::from(format!("Found no node with the given ID"))));
                 }
-                return Err(PhyloError::SearchGenomeError);
+                return Err(PhyloError::SearchGenomeError(String::from("Found no node with the given ID")));
             }
         }
     }
     dbg!("WE HERE AT THE BOTTOM");
 
-    Err(PhyloError::SearchGenomeError)
+    Err(PhyloError::SearchGenomeError(String::from("Catch all problem")))
 }
 
 
