@@ -16,8 +16,8 @@ fn testing() {
     }
     //dbg!(ve);
 
-    let items = vec![1,  2, 3,  4,   5,   6, 7,  8];
-    let probs = vec![40, 3, 18, 100, 200, 1, 35, 16];
+    //let items = vec![1,  2, 3,  4,   5,   6, 7,  8];
+    //let probs = vec![40, 3, 18, 100, 200, 1, 35, 16];
     //dbg!(algorithms::random_weighted(items, probs, 10, true));
 
     let mut x = Box::new(3);
@@ -26,28 +26,28 @@ fn testing() {
 
     let mut buff = vec![1; 32];
     let file = File::open("/home/terrior/Programming/genome-tree/src/test1.txt").unwrap();
-    file.read_exact_at(&mut buff, 0);
+    file.read_exact_at(&mut buff, 0).unwrap();
     //dbg!(buff);
 
     let kmers = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 12, 64).unwrap();
     let kmers1 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna", 12, 64).unwrap();
     let kmers2 = algorithms::generate_kmers("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna", 12, 64).unwrap();
 
-    let mut genome = Genome {
+    let genome = Genome {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
         kmers: kmers,
         closest_distance: 0,
     };
     
-    let mut genome1 = Genome {
+    let genome1 = Genome {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
         kmers: kmers1,
         closest_distance: 0,
     };
 
-    let mut genome2 = Genome {
+    let genome2 = Genome {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna"),
         kmers: kmers2,

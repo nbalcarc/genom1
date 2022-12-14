@@ -7,7 +7,7 @@ pub enum PhyloError {
     FileTooSmall(String),
     FileOpenError(String),
     KTooBig(u32),
-    ConversionError,
+    //ConversionError,
     SearchGenomeError(String),
     SearchNodeError(String),
     GenomeInsertError(String),
@@ -28,9 +28,9 @@ impl Display for PhyloError {
             Self::KTooBig(s) => {
                 write!(f, "{}", s)
             },
-            Self::ConversionError => {
-                write!(f, "ConversionError")
-            },
+            //Self::ConversionError => {
+            //    write!(f, "ConversionError")
+            //},
             Self::SearchGenomeError(s) => {
                 write!(f, "SearchGenomeError ({})", s)
             },

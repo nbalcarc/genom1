@@ -1,4 +1,4 @@
-use std::{fs::{self, File}, io::{Read, BufReader, BufRead}, os::unix::prelude::FileExt, collections::HashMap};
+use std::{fs::{self, File}, io::{Read, BufReader}, os::unix::prelude::FileExt, collections::HashMap};
 use rand::Rng;
 
 use crate::{errors::PhyloError, structs::{Genome, TreeNode, TreeVertex}};
@@ -179,13 +179,13 @@ pub fn kmer_similarity(host: &Genome, guest: &Genome) -> u32 {
     let kmers = host.kmers.clone();
    
     // open file
-    let mut buffer: Vec<u8> = vec![0; 1024];
+    //let mut buffer: Vec<u8> = vec![0; 1024];
     let file = File::open(&guest.dir).unwrap();
     let mut reader = BufReader::new(file);
 
     // read all data
     let mut buff = Vec::new();
-    reader.read_to_end(&mut buff);
+    reader.read_to_end(&mut buff).unwrap();
     let all = String::from_utf8(buff).unwrap();
 
     // for every kmer
