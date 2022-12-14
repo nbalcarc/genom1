@@ -10,7 +10,7 @@ pub enum PhyloError {
     ConversionError,
     SearchGenomeError(String),
     SearchNodeError(String),
-    GenomeInsertError,
+    GenomeInsertError(String),
 }
 impl Error for PhyloError {}
 impl Display for PhyloError {
@@ -37,8 +37,8 @@ impl Display for PhyloError {
             Self::SearchNodeError(s) => {
                 write!(f, "SearchNodeError ({})", s)
             },
-            Self::GenomeInsertError => {
-                write!(f, "GenomeInsertError")
+            Self::GenomeInsertError(s) => {
+                write!(f, "GenomeInsertError ({})", s)
             },
         }
     }

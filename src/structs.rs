@@ -170,7 +170,6 @@ pub struct Genome {
     pub path: Vec<u8>,              // the path to reach this genome
     pub dir: String,                // the directory of the genome
     pub kmers: Vec<String>,         // the list of kmers for this genome
-    pub closest_relative: Vec<u8>, // the path of the closest relative
     pub closest_distance: usize,      // Levenshtein distance between this genome and its closest relative
 }
 
@@ -301,7 +300,7 @@ impl PhyloTree {
         let x = threads.len();
         for thr in threads {
             println!("size of threads: {}", x);
-            thr.join().map_err(|_| PhyloError::GenomeInsertError)?;
+            thr.join().map_err(|_| PhyloError::GenomeInsertError(String::from("Error joining threads after running Levenshtein")))?;
         }
 
         let distances = distances.lock().unwrap().clone();
@@ -359,7 +358,6 @@ impl PhyloTree {
 
                     
                     genome.path = genome_path.clone();
-                    genome.closest_relative = cr_path.clone();
                     
                     //let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
                     //new_path.remove(new_path.len()-1);
@@ -389,7 +387,6 @@ impl PhyloTree {
                             path: Vec::new(),
                             dir: String::from(""),
                             kmers: Vec::new(),
-                            closest_relative: Vec::new(),
                             closest_distance: 0,
                         }
                     }
@@ -406,7 +403,6 @@ impl PhyloTree {
                         //genome.closest_relative = closest_path;
                         //genome.closest_relative = new_closest_path;
                         closest_relative.path = cr_path;
-                        closest_relative.closest_relative = genome_path;
                         closest_relative.closest_distance = distance;
                         f_new.push(genome);
                         f_new.push(closest_relative);
@@ -434,7 +430,6 @@ impl PhyloTree {
                     cr_path.insert(cr_path.len()-1, self.next_index); //push the new split
                     
                     genome.path = genome_path.clone();
-                    genome.closest_relative = cr_path.clone();
 
                     // create the second branch, where the new genome and its CR will reside
                     s.push(TreeNode::new_with_floor(self.next_index + 1, 1));
@@ -456,7 +451,6 @@ impl PhyloTree {
                             new_path.insert(length-1, self.next_index);
                             cur_genome.path = new_path;
                             if cur_genome.path == cr_path { //if this is the closest relative, update its info
-                                cur_genome.closest_relative = genome_path.clone();
                                 cur_genome.closest_distance = distance;
                             }
                         }
@@ -481,16 +475,12 @@ impl PhyloTree {
 
             // the function get_mut_node_and_increment fights our root's count when we have a floor, so we account for that here
             if root_count_increment {
-                println!("MANUALLY INCREMENTED THE ROOT COUNT");
                 self.root.count += 1;
             }
             return Ok(());
         }
 
-
-        dbg!("DISTANCES WAS EMPTY");
-
-        Err(PhyloError::GenomeInsertError)
+        Err(PhyloError::GenomeInsertError(String::from("Distances vector was empty, could find no nodes to compare to")))
     }
 
 }

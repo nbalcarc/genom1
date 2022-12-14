@@ -37,7 +37,6 @@ fn testing() {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
         kmers: kmers,
-        closest_relative: Vec::new(),
         closest_distance: 0,
     };
     
@@ -45,7 +44,6 @@ fn testing() {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Abaca_bunchy_top_virus/GCF_000872625.1_ViralMultiSegProj28697_genomic.fna"),
         kmers: kmers1,
-        closest_relative: Vec::new(),
         closest_distance: 0,
     };
 
@@ -53,7 +51,6 @@ fn testing() {
         path: Vec::new(),
         dir: String::from("/home/terrior/Programming/genome-tree/genomes/Akhmeta_virus/GCF_006452035.1_ASM645203v1_genomic.fna"),
         kmers: kmers2,
-        closest_relative: Vec::new(),
         closest_distance: 0,
     };
 
@@ -94,7 +91,6 @@ fn tree_generation() {
                 path: Vec::new(),
                 dir: file_path,
                 kmers: kmers,
-                closest_relative: Vec::new(),
                 closest_distance: 0,
             };
 
