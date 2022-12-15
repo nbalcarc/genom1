@@ -53,13 +53,16 @@ def main():
         
         
         # iterate through all files in the extracted location (the file ends with .fna but the name could be anything)
+        folder_loc = ""
         if not os.path.isdir(genomes_dir + "/" + organism_name):
             os.makedirs(genomes_dir + "/" + organism_name)
+            folder_loc = genomes_dir + "/" + organism_name
         else:
             i = 1
             while os.path.isdir(genomes_dir + "/" + organism_name + "_" + str(i)):
                 i += 1
             os.makedirs(genomes_dir + "/" + organism_name + "_" + str(i))
+            folder_loc = genomes_dir + "/" + organism_name + "_" + str(i)
         for tfile in os.listdir(genome_location):
             
             # if this isn't the file we're looking for, skip
@@ -67,7 +70,7 @@ def main():
                 continue
             
             genome_file = preprocess(genome_location + tfile) #preprocess the file before copying
-            shutil.copyfile(genome_file, genomes_dir + "/" + organism_name + "/" + tfile) #copy the file into the output
+            shutil.copyfile(genome_file, folder_loc + "/" + tfile) #copy the file into the output
     
 
 if __name__ == "__main__":
