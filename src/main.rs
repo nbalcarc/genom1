@@ -98,7 +98,7 @@ fn tree_generation() {
                 closest_distance: 0,
             };
 
-            println!("TOTAL NODES BEFORE PUSHING: {}", tree.root.count);
+            println!("TOTAL GENOMES BEFORE PUSHING: {}", tree.root.count);
             let res = tree.push(genome);
             match res {
                 Ok(_) => {

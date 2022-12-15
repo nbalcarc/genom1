@@ -89,7 +89,7 @@ pub fn random_weighted(elems: Vec<u32>, probabilities: Vec<u32>, rounds: u32, li
 
     // ensure our number of rounds works if we're not going limitless
     if !limitless && rounds as usize > amounts.len() {
-        dbg!("EXITING EARLY HERE");
+        dbg!("EXITING EARLY HERE BECAUSE NOT LIMITLESS AND REQUESTED MORE ROUNDS THAN WEIGHTS");
         dbg!(amounts.len());
         dbg!(rounds);
         dbg!(elems);
@@ -243,21 +243,23 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
     }
 
     ret.push(root);
+    println!("FULL PATH: PATH RECEIVED: {:?}", &path);
 
     // for each part of the path, find the node that corresponds to it and push it to the return vector
     let mut cur = root;
-    'main_loop: for i in 1..path.len()-1 { //exclude the last index
+    'main_loop: for i in 0..path.len()-1 { //exclude the last index
 
         // find what type of vertex we're working with
         match &cur.vertex {
             TreeVertex::Split(s) => { //split found
+                println!("FOUND SPLIT AT {}, i is {}, cur is {}", i, &path[i], &cur.id);
                 if i >= path.len()-2 { //too close to the edge
                     return Err(PhyloError::SearchNodeError(String::from("full_path: Found a split instead of a floor (split was later than expected)")));
                 }
                 // we aren't too close to the edge, find the next node with the given id
                 // find the node to traverse next
                 for node in s {
-                    if node.id == path[i] { //found the next node
+                    if node.id == path[i+1] { //found the next node
                         ret.push(node); //since we found a valid node, push it to ret
                         cur = node;
                         continue 'main_loop;
@@ -268,6 +270,7 @@ pub fn get_full_path<'a>(root: &'a TreeNode, path: &Vec<u8>) -> Result<Vec<&'a T
 
             },
             TreeVertex::Floor(_) => { //floor found
+                println!("FOUND FLOOR AT {}, should be {}, is {}", i, &path[i], &cur.id);
                 if i != path.len() - 2 { //if this isn't the second-to-last index
                     return Err(PhyloError::SearchNodeError(String::from("full_path: Found a floor instead of a split (floor was earlier than expected)")));
                 }
@@ -285,9 +288,12 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
         return Err(PhyloError::SearchNodeError(String::from("get_node: Root ID doesn't match with expected value")));
     }
 
+    println!("PATH RECEIVED: {:?}", &path);
+
     // for each part of the path, find the node that corresponds to it and push it to the return vector
     let mut cur = root;
-    cur.count = cur.count + 1; 
+    cur.count = cur.count + 1;
+    println!("UPDATED: {}", cur.id);
 
     'main_loop: for i in 1..path.len()-1 { //exclude the last index
         
@@ -303,6 +309,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
                     if node.id == path[i] { //found the next node
                         cur = node; // This was a mutable ref to a mutable ref; not what you're looking for
                         cur.count = cur.count + 1; //increment the count
+                        println!("UPDATED: {}", cur.id);
                         continue 'main_loop;
                     }
                     continue;
@@ -320,6 +327,7 @@ pub fn get_mut_node_and_increment<'a>(root: &'a mut TreeNode, path: &Vec<u8>) ->
         }
     }
     cur.count = cur.count - 1; //don't increment the base level of nodes, because the behavior here differs
+    println!("REVERTED: {}", cur.id);
     Ok(cur) 
 }
 

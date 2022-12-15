@@ -24,11 +24,14 @@ impl TreeNode {
 
     /// If we have a floor, we'll switch to a split where one of the children is our current floor
     pub fn split(&mut self, id: u8) {
+        dbg!("IN THE SPLIT FUNCTION");
         if let TreeVertex::Floor(_) = &mut self.vertex {
             let mut floor_node = TreeNode::new_with_floor(id, self.count); //the new node that will point to our current floor
             let cur_floor = std::mem::replace(&mut self.vertex, TreeVertex::new_split()); //retrieve the current floor
             floor_node.vertex = cur_floor; //place the floor into the node
             self.vertex.push_node(floor_node); //push the newly created node containing our old floor into our split
+        } else {
+            println!("THIS SHOULDNT HAVE HAPPENED, FOUND A SPLIT AND NOT A FLOOR");
         }
     }
 
@@ -44,11 +47,12 @@ impl TreeNode {
         // Find all the genomes to run the kmer check on
         while heads.len() > 0 {
 
+            let mut new_heads: Vec<(&TreeNode, u32)> = Vec::new(); //create new vector to replace current one
+
             // Repeat once per tuple in the current heads
             for i in 0..heads.len() {
 
                 let mut tup = heads[i]; //get the current tuple of information
-                let mut new_heads: Vec<(&TreeNode, u32)> = Vec::new(); //create new vector to replace current one
 
                 // if the TreeNode has fewer genomes than we have heads
                 if &tup.0.count < &tup.1 {
@@ -84,19 +88,19 @@ impl TreeNode {
                             new_heads.push((node_ref, branches[branch_index]));
                         }
 
-                        heads = new_heads;
                     },
-                    TreeVertex::Floor(v) => { //if we have a floor of genomes
+                    TreeVertex::Floor(f) => { //if we have a floor of genomes
                         // assign each head its own genome
-                        heads.remove(i);
+                        //heads.remove(i);
 
                         use rand::seq::SliceRandom;
-                        genomes.extend(v.choose_multiple(&mut thread_rng, tup.1 as _));
+                        genomes.extend(f.choose_multiple(&mut thread_rng, tup.1 as _)); //chooses tup.1 (heads count) amount of genomes without repetition
                         
                         break;
                     }
                 }
             }
+            heads = new_heads;
         }
         genomes        
     }
@@ -296,13 +300,15 @@ impl PhyloTree {
             if relative_distance <= 0.85 { //create a new branch, bring the new genome and its closest relative into it, update genome paths
                 println!("---> CASE 1: New branch, put genome and closest relative there");
 
-                parent_node.split(self.next_index);
-                
-                if let TreeVertex::Split(ref mut s) = parent_node.vertex {
+                println!("DEBUGGING SPLIT FOR CASE 1");
+                println!("Before:");
+                dbg!(&parent_node);
+                parent_node.split(self.next_index); //turn the floor into a split with one child
+                println!("After:");
+                dbg!(&parent_node);
 
-                    // update counts
-                    s[0].count -= 1;
-                    s[1].count = 1;
+                // open the split
+                if let TreeVertex::Split(ref mut s) = parent_node.vertex {
 
                     let mut genome_path = best_genome_path.clone(); //update the path of the newly inserted genome
                     let distance = genome.closest_distance; //retrieve the distance
@@ -315,11 +321,22 @@ impl PhyloTree {
                     genome.path = genome_path.clone();
                     let mut closest_relative;
 
+                    // create the second branch, where the new genome and its CR will reside
+                    s.push(TreeNode::new_with_floor(self.next_index + 1, 2)); //set a count of 2 for this reason
+
+                    // update count
+                    s[0].count -= 1; //we took a node from this floor so reduce by 1
+                    //s[1].count = 1; //we already set the count above
+                    //parent_node.count -= 2; //we didn't actually place any nodes here + we lost one
+                    parent_node.count += 1;
+                    //parent_node's count should be unaffected
+
+
                     // open the first branch
                     if let TreeVertex::Floor(ref mut f_original) = s[0].vertex {
                         closest_relative = f_original.remove(best_genome_path[best_genome_path.len()-1] as usize); //grab the closest relative Genome so we can move it
 
-                        // update all the paths because the vector was just shifted
+                        // update all the paths because the vector was just shifted and a split was created
                         for i in 0..f_original.len() {
                             let mut cur_genome = &mut f_original[i];
                             let mut new_path = cur_genome.path.clone();
@@ -338,7 +355,7 @@ impl PhyloTree {
                     }
 
                     // create the second branch, where the new genome and its CR will reside
-                    s.push(TreeNode::new_with_floor(self.next_index + 1, parent_node.count));
+                    //s.push(TreeNode::new_with_floor(self.next_index + 1, parent_node.count));
                     if let TreeVertex::Floor(ref mut f_new) = s[1].vertex {
 
                         // update the genome's path to its closest relative (who is now in the same floor as it)
@@ -349,12 +366,18 @@ impl PhyloTree {
                     }
 
                 }
-                self.next_index = self.next_index + 2;
+                self.next_index = self.next_index + 2; //added two new nodes
 
             // CASE 2
             } else if relative_distance >= 1.17 { //create a new branch, place the new genome there
                 println!("---> CASE 2: New branch, put genome there");
+
+                println!("DEBUGGING SPLIT FOR CASE 1");
+                println!("Before:");
+                dbg!(&parent_node);
                 parent_node.split(self.next_index);
+                println!("After:");
+                dbg!(&parent_node);
 
                 // retrieve the parent node above where the floor node is
                 if let TreeVertex::Split(ref mut s) = parent_node.vertex {
@@ -370,8 +393,10 @@ impl PhyloTree {
                     
                     genome.path = genome_path.clone();
 
-                    // create the second branch, where the new genome and its CR will reside
-                    s.push(TreeNode::new_with_floor(self.next_index + 1, 1));
+                    // create the second branch, where the new genome will reside
+                    s.push(TreeNode::new_with_floor(self.next_index + 1, 1)); //there will only be the new genome, so count 1
+                    //parent_node.count -= 1; //we didn't place any nodes here
+                    parent_node.count += 1;
 
                     // update the paths of the genomes in the original floor
                     if let TreeVertex::Floor(ref mut f) = s[0].vertex {
@@ -390,11 +415,14 @@ impl PhyloTree {
                         f.push(genome);
                     }
                 }
-                self.next_index = self.next_index + 2;
+                self.next_index = self.next_index + 2; //added two new nodes
 
             // CASE 3
             } else { //place the new genome in the same branch as its closest relative
                 println!("---> CASE 3: Put genome in same branch as closest relative");
+
+                parent_node.count += 1;
+
                 if let TreeVertex::Floor(ref mut f) = parent_node.vertex {
                     let mut new_path = best_genome_path.clone(); //update the path of the newly inserted genome
                     new_path.remove(new_path.len()-1);
@@ -411,7 +439,7 @@ impl PhyloTree {
 
             // the function get_mut_node_and_increment fights our root's count when we have a floor, so we account for that here
             if root_count_increment {
-                self.root.count += 1;
+                //self.root.count += 1;
             }
             return Ok(());
         }
